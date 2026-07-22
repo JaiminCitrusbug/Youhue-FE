@@ -7,3 +7,6 @@ coverage
 
 .stryker-tmp/
 reports/
+
+# Playwright transient run artifacts (baselines under tests/visual ARE tracked)
+test-results/
