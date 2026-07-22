@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { AppShell } from "./AppShell"
 
-const mocks = vi.hoisted(() => ({ signOut: vi.fn() }))
+const mocks = vi.hoisted(() => ({ signOut: vi.fn(), navigate: vi.fn() }))
 vi.mock("../../app/AuthContext", () => ({
   useAuth: () => ({
     user: { subject_id: "1", kind: "staff", role: "teacher", school_id: "s" },
@@ -14,8 +14,17 @@ vi.mock("../../app/AuthContext", () => ({
     signOut: mocks.signOut,
   }),
 }))
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>()
+  return { ...actual, useNavigate: () => mocks.navigate }
+})
 
 describe("AppShell (staff frame)", () => {
+  beforeEach(() => {
+    mocks.signOut.mockClear()
+    mocks.navigate.mockClear()
+  })
+
   it("renders a logout control and the role nav on an authenticated screen", () => {
     render(
       <MemoryRouter>
@@ -26,7 +35,7 @@ describe("AppShell (staff frame)", () => {
     expect(screen.getByRole("link", { name: /class dashboard/i })).toBeInTheDocument()
   })
 
-  it("logging out invokes signOut", async () => {
+  it("logging out invokes signOut AND returns to the staff sign-in screen", async () => {
     render(
       <MemoryRouter>
         <AppShell />
@@ -34,5 +43,6 @@ describe("AppShell (staff frame)", () => {
     )
     await userEvent.click(screen.getByRole("button", { name: /log out/i }))
     expect(mocks.signOut).toHaveBeenCalled()
+    expect(mocks.navigate).toHaveBeenCalledWith("/sign-in")
   })
 })

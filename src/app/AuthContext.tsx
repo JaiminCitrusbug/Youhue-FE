@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
 import { api, getToken, onAuthFailure, setToken } from "../api/client"
+import { logAuthEvent } from "../lib/telemetry"
 
 export interface Me {
   subject_id: string
@@ -31,8 +32,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setUser(await api<Me>("/me"))
     } catch {
+      // Only a 401 forces sign-out, and api() already clears the token + fires onAuthFailure
+      // for that case. A transient network/5xx blip must NOT drop the in-memory token — keep it
+      // so the session survives and a later refresh can succeed.
       setUser(null)
-      setToken(null)
     }
     setLoading(false)
   }
@@ -40,8 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signOut(): Promise<void> {
     try {
       await api("/auth/logout", { method: "POST" })
+      logAuthEvent("fr_01_05_success")
     } catch {
       // even if the call fails, drop the local session
+      logAuthEvent("fr_01_05_error")
     }
     setToken(null)
     setUser(null)
@@ -51,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh()
     // one choke point: any 401 during the session ends it (token already cleared in api())
     return onAuthFailure(() => {
+      logAuthEvent("fr_01_05_rejected")
       setUser(null)
       setToken(null)
     })

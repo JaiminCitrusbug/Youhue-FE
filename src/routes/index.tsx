@@ -1,42 +1,19 @@
-import { type ReactElement } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 
 import { useAuth } from "../app/AuthContext"
 import { AppShell } from "../components/layout/AppShell"
+import { RequireRole, RequireStaff, RequireStudent } from "../components/layout/guards"
 import { StudentShell } from "../components/layout/StudentShell"
 import { Maintenance, NotFound404, ServerError500, Terms } from "../components/layout/system"
+import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 
 function Placeholder({ title }: { title: string }) {
   return <h1 className="text-2xl font-bold text-ink">{title}</h1>
 }
 
-function RequireStaff({ children }: { children: ReactElement }) {
-  const { user, loading } = useAuth()
-  if (loading) return <p className="p-6">Loading…</p>
-  if (!user || (user.kind !== "staff" && user.kind !== "admin")) {
-    return <Navigate to="/sign-in" replace />
-  }
-  return children
-}
-
-function RequireStudent({ children }: { children: ReactElement }) {
-  const { user, loading } = useAuth()
-  if (loading) return <p className="p-6">Loading…</p>
-  if (!user || user.kind !== "student") return <Navigate to="/student/sign-in" replace />
-  return children
-}
-
-const HOME_BY_ROLE: Record<string, string> = {
-  teacher: "dashboard",
-  support: "dashboard",
-  leadership: "leadership",
-  district: "district",
-  admin: "admin",
-}
-
 function RoleHome() {
   const { user } = useAuth()
-  return <Navigate to={`/app/${HOME_BY_ROLE[user?.role ?? ""] ?? "dashboard"}`} replace />
+  return <Navigate to={`/app/${HOME_BY_ROLE[effectiveRole(user) ?? ""] ?? "dashboard"}`} replace />
 }
 
 export function AppRoutes() {
@@ -53,10 +30,38 @@ export function AppRoutes() {
         }
       >
         <Route index element={<RoleHome />} />
-        <Route path="dashboard" element={<Placeholder title="Class dashboard" />} />
-        <Route path="leadership" element={<Placeholder title="Leadership overview" />} />
-        <Route path="district" element={<Placeholder title="District admin" />} />
-        <Route path="admin" element={<Placeholder title="Admin console" />} />
+        <Route
+          path="dashboard"
+          element={
+            <RequireRole allow={ROLE_ROUTES.dashboard}>
+              <Placeholder title="Class dashboard" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="leadership"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <Placeholder title="Leadership overview" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="district"
+          element={
+            <RequireRole allow={ROLE_ROUTES.district}>
+              <Placeholder title="District admin" />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin"
+          element={
+            <RequireRole allow={ROLE_ROUTES.admin}>
+              <Placeholder title="Admin console" />
+            </RequireRole>
+          }
+        />
       </Route>
       <Route
         path="/student"
