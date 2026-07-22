@@ -8,6 +8,7 @@ import { RequireRole, RequireStaff, RequireStudent } from "../components/layout/
 import { StudentShell } from "../components/layout/StudentShell"
 import { Maintenance, NotFound404, ServerError500, Terms } from "../components/layout/system"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
+import { StudentSignInApp } from "./student-signin"
 
 function Placeholder({ title }: { title: string }) {
   return <h1 className="text-2xl font-bold text-ink">{title}</h1>
@@ -44,7 +45,8 @@ export function AppRoutes() {
       {import.meta.env.DEV ? <TestAuthBridge /> : null}
     <Routes>
       <Route path="/sign-in" element={<Placeholder title="Staff sign-in (Wave 1)" />} />
-      <Route path="/student/sign-in" element={<Placeholder title="Student sign-in (Wave 1)" />} />
+      {/* FR-01-02 — student passwordless sign-in owns its own route module (decision #4). */}
+      <Route path="/student/sign-in/*" element={<StudentSignInApp />} />
       <Route
         path="/app"
         element={

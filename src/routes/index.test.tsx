@@ -51,7 +51,9 @@ describe("AppRoutes (role-aware router)", () => {
   it("a staff session cannot resolve the student route", () => {
     state.user = { subject_id: "1", kind: "staff", role: "teacher", school_id: "s" }
     renderAt("/student")
-    expect(screen.getByText(/student sign-in/i)).toBeInTheDocument()
+    // bounced to the student sign-in surface (SC-020), never a staff screen
+    expect(screen.getByRole("heading", { name: /enter your class code/i })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: /class dashboard/i })).not.toBeInTheDocument()
   })
 
   // (NEG) INFRA-04.md §29 — a signed-in staff whose role does not permit a route is denied
