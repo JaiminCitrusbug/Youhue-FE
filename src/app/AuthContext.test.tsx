@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { getToken, setToken } from "../lib/api"
+import { getToken, setToken } from "../api/client"
 import { AuthProvider, useAuth, type AuthState } from "./AuthContext"
 
 function Probe() {

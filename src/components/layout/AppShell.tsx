@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate } from "react-router-dom"
 
-import { useAuth } from "../auth/AuthContext"
+import { useAuth } from "../../app/AuthContext"
 
 // Role-driven nav (fed by the backend role; INFRA-03 owns who may). Presentational only.
 const NAV_BY_ROLE: Record<string, { label: string; to: string }[]> = {

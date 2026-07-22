@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest"
 import { AppShell } from "./AppShell"
 
 const mocks = vi.hoisted(() => ({ signOut: vi.fn() }))
-vi.mock("../auth/AuthContext", () => ({
+vi.mock("../../app/AuthContext", () => ({
   useAuth: () => ({
     user: { subject_id: "1", kind: "staff", role: "teacher", school_id: "s" },
     loading: false,

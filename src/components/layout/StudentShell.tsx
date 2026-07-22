@@ -1,6 +1,6 @@
 import { Outlet, useNavigate } from "react-router-dom"
 
-import { useAuth } from "../auth/AuthContext"
+import { useAuth } from "../../app/AuthContext"
 
 // Student frame — a SEPARATE surface from the staff app: coral theme, no staff features/sidebar.
 export function StudentShell() {

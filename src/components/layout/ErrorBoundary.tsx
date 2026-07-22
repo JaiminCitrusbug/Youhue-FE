@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from "react"
 
-import { ServerError500 } from "../pages/system"
+import { ServerError500 } from "./system"
 
 interface Props {
   children: ReactNode

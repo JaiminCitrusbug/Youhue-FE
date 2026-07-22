@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { api, getToken, onAuthFailure, setToken } from "./api"
+import { api, getToken, onAuthFailure, setToken } from "./client"
 
 describe("api client", () => {
   afterEach(() => {

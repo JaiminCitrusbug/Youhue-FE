@@ -1,10 +1,10 @@
 import { type ReactElement } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 
-import { useAuth } from "./auth/AuthContext"
-import { AppShell } from "./components/AppShell"
-import { StudentShell } from "./components/StudentShell"
-import { Maintenance, NotFound404, ServerError500, Terms } from "./pages/system"
+import { useAuth } from "../app/AuthContext"
+import { AppShell } from "../components/layout/AppShell"
+import { StudentShell } from "../components/layout/StudentShell"
+import { Maintenance, NotFound404, ServerError500, Terms } from "../components/layout/system"
 
 function Placeholder({ title }: { title: string }) {
   return <h1 className="text-2xl font-bold text-ink">{title}</h1>

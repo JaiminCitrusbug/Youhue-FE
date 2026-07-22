@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
-import { api, getToken, onAuthFailure, setToken } from "../lib/api"
+import { api, getToken, onAuthFailure, setToken } from "../api/client"
 
 export interface Me {
   subject_id: string

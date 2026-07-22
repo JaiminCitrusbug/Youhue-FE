@@ -2,11 +2,11 @@ import { render, screen } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { AppRoutes } from "./routes"
-import type { Me } from "./auth/AuthContext"
+import { AppRoutes } from "./index"
+import type { Me } from "../app/AuthContext"
 
 const state = vi.hoisted(() => ({ user: null as Me | null, loading: false }))
-vi.mock("./auth/AuthContext", () => ({
+vi.mock("../app/AuthContext", () => ({
   useAuth: () => ({ user: state.user, loading: state.loading, refresh: vi.fn(), signOut: vi.fn() }),
 }))
 
