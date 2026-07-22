@@ -7,6 +7,7 @@ import { AppShell } from "../components/layout/AppShell"
 import { RequireRole, RequireStaff, RequireStudent } from "../components/layout/guards"
 import { StudentShell } from "../components/layout/StudentShell"
 import { Maintenance, NotFound404, ServerError500, Terms } from "../components/layout/system"
+import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 import { AdminSignInApp } from "./admin-signin"
 import { StudentSignInApp } from "./student-signin"
@@ -45,7 +46,8 @@ export function AppRoutes() {
     <>
       {import.meta.env.DEV ? <TestAuthBridge /> : null}
     <Routes>
-      <Route path="/sign-in" element={<Placeholder title="Staff sign-in (Wave 1)" />} />
+      {/* FR-01-03 — staff sign-in owns its own route module (decision #4). */}
+      <Route path="/sign-in/*" element={<StaffAuthRoutes />} />
       {/* FR-01-02 — student passwordless sign-in owns its own route module (decision #4). */}
       <Route path="/student/sign-in/*" element={<StudentSignInApp />} />
       {/* FR-19-01 — internal admin console sign-in owns its own route module (decision #4). */}

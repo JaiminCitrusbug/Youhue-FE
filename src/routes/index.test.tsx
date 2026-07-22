@@ -32,7 +32,9 @@ describe("AppRoutes (role-aware router)", () => {
 
   it("redirects an unauthenticated staff route to sign-in", () => {
     renderAt("/app/dashboard")
-    expect(screen.getByText(/staff sign-in/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: /sign in to student wellbeing/i }),
+    ).toBeInTheDocument()
   })
 
   it("lands a signed-in teacher on their role home inside the shell", () => {
@@ -45,7 +47,9 @@ describe("AppRoutes (role-aware router)", () => {
   it("a student session cannot resolve a staff route", () => {
     state.user = { subject_id: "1", kind: "student", role: null, school_id: "s" }
     renderAt("/app/dashboard")
-    expect(screen.getByText(/staff sign-in/i)).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: /sign in to student wellbeing/i }),
+    ).toBeInTheDocument()
   })
 
   it("a staff session cannot resolve the student route", () => {

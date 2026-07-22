@@ -20,6 +20,42 @@ export function onAuthFailure(listener: AuthFailureListener): () => void {
   return () => _authFailureListeners.delete(listener)
 }
 
+/** Result of a pre-auth request: the status is load-bearing (401 vs 423 vs 429 drive the UI). */
+export interface AuthResult<T> {
+  status: number
+  data: T | null
+}
+
+/**
+ * Pre-authentication POST helper for the sign-in / forgot / reset / MFA endpoints.
+ *
+ * Unlike `api()`, this does NOT attach the bearer token and does NOT route 401 through the
+ * global auth-failure choke — a failed *sign-in* is not an expired *session*, so it must not
+ * sign anybody out. It never throws on a 4xx: the caller inspects `status` to render the correct
+ * (generic) message, so an error is surfaced, never silently dropped. Handles the 204 (reset) and
+ * 202 (forgot) bodies safely.
+ */
+export async function authFetch<T>(
+  path: string,
+  body: unknown,
+  method = "POST",
+): Promise<AuthResult<T>> {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  let data: T | null = null
+  if (res.status !== 204) {
+    try {
+      data = (await res.json()) as T
+    } catch {
+      data = null // empty / non-JSON body (e.g. an error page) — status still tells the story
+    }
+  }
+  return { status: res.status, data }
+}
+
 export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...opts,
