@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
-import { api, getToken, setToken } from "../lib/api"
+import { api, getToken, onAuthFailure, setToken } from "../lib/api"
 
 export interface Me {
   subject_id: string
@@ -49,6 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refresh()
+    // one choke point: any 401 during the session ends it (token already cleared in api())
+    return onAuthFailure(() => {
+      setUser(null)
+      setToken(null)
+    })
   }, [])
 
   return (

@@ -42,6 +42,12 @@ describe("AppRoutes (role-aware router)", () => {
     expect(screen.getByText(/staff sign-in/i)).toBeInTheDocument()
   })
 
+  it("a staff session cannot resolve the student route", () => {
+    state.user = { subject_id: "1", kind: "staff", role: "teacher", school_id: "s" }
+    renderAt("/student")
+    expect(screen.getByText(/student sign-in/i)).toBeInTheDocument()
+  })
+
   it("shows a maintenance page and 404 for unknown routes", () => {
     renderAt("/maintenance")
     expect(screen.getByText(/down for maintenance/i)).toBeInTheDocument()

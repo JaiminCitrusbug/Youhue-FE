@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { api, getToken, setToken } from "./api"
+import { api, getToken, onAuthFailure, setToken } from "./api"
 
 describe("api client", () => {
   afterEach(() => {
@@ -26,7 +26,18 @@ describe("api client", () => {
   })
 
   it("throws on a non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+    await expect(api("/me")).rejects.toThrow(/500/)
+  })
+
+  it("clears the token and notifies on a 401 (token in memory only)", async () => {
+    setToken("tok")
+    const listener = vi.fn()
+    const unsub = onAuthFailure(listener)
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 401 }))
-    await expect(api("/me")).rejects.toThrow(/401/)
+    await expect(api("/me")).rejects.toThrow()
+    expect(getToken()).toBeNull() // stale session cannot persist
+    expect(listener).toHaveBeenCalled()
+    unsub()
   })
 })

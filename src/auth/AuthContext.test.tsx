@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { setToken } from "../lib/api"
+import { getToken, setToken } from "../lib/api"
 import { AuthProvider, useAuth, type AuthState } from "./AuthContext"
 
 function Probe() {
@@ -37,9 +37,10 @@ describe("AuthProvider", () => {
     await waitFor(() => expect(screen.getByText("user:teacher")).toBeInTheDocument())
   })
 
-  it("signOut clears the session", async () => {
+  it("signOut calls the logout endpoint and clears the token + user", async () => {
     setToken("tok")
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => USER }))
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => USER })
+    vi.stubGlobal("fetch", fetchMock)
     let auth: AuthState | undefined
     function Grab() {
       auth = useAuth()
@@ -55,6 +56,11 @@ describe("AuthProvider", () => {
       await auth?.signOut()
     })
     expect(auth?.user).toBeNull()
+    expect(getToken()).toBeNull()
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/auth/logout"),
+      expect.objectContaining({ method: "POST" }),
+    )
   })
 
   it("useAuth throws outside a provider", () => {
