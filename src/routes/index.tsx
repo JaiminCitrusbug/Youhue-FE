@@ -8,6 +8,7 @@ import { RequireRole, RequireStaff, RequireStudent } from "../components/layout/
 import { StudentShell } from "../components/layout/StudentShell"
 import { Maintenance, NotFound404, ServerError500, Terms } from "../components/layout/system"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
+import { AdminSignInApp } from "./admin-signin"
 import { StudentSignInApp } from "./student-signin"
 
 function Placeholder({ title }: { title: string }) {
@@ -47,6 +48,8 @@ export function AppRoutes() {
       <Route path="/sign-in" element={<Placeholder title="Staff sign-in (Wave 1)" />} />
       {/* FR-01-02 — student passwordless sign-in owns its own route module (decision #4). */}
       <Route path="/student/sign-in/*" element={<StudentSignInApp />} />
+      {/* FR-19-01 — internal admin console sign-in owns its own route module (decision #4). */}
+      <Route path="/admin/sign-in/*" element={<AdminSignInApp />} />
       <Route
         path="/app"
         element={
