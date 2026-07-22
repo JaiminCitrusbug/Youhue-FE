@@ -1,5 +1,7 @@
-import { Navigate, Route, Routes } from "react-router-dom"
+import { useEffect } from "react"
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom"
 
+import { setToken } from "../api/client"
 import { useAuth } from "../app/AuthContext"
 import { AppShell } from "../components/layout/AppShell"
 import { RequireRole, RequireStaff, RequireStudent } from "../components/layout/guards"
@@ -16,8 +18,30 @@ function RoleHome() {
   return <Navigate to={`/app/${HOME_BY_ROLE[effectiveRole(user) ?? ""] ?? "dashboard"}`} replace />
 }
 
+// DEV-ONLY e2e bridge. The token is in-memory only (setToken -> module var in api/client.ts,
+// NEVER localStorage). Because sign-in UI is a Wave-1 placeholder, the whole-product Playwright
+// gate obtains a REAL token from the live BE and injects it here, then navigates CLIENT-SIDE so no
+// full reload wipes the in-memory token. Stripped from production builds by `import.meta.env.DEV`.
+function TestAuthBridge() {
+  const { refresh } = useAuth()
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    ;(window as unknown as { __youhueTest?: unknown }).__youhueTest = {
+      login: async (token: string, to = "/app") => {
+        setToken(token)
+        await refresh()
+        navigate(to)
+      },
+    }
+  }, [refresh, navigate])
+  return null
+}
+
 export function AppRoutes() {
   return (
+    <>
+      {import.meta.env.DEV ? <TestAuthBridge /> : null}
     <Routes>
       <Route path="/sign-in" element={<Placeholder title="Staff sign-in (Wave 1)" />} />
       <Route path="/student/sign-in" element={<Placeholder title="Student sign-in (Wave 1)" />} />
@@ -78,5 +102,6 @@ export function AppRoutes() {
       <Route path="/500" element={<ServerError500 />} />
       <Route path="*" element={<NotFound404 />} />
     </Routes>
+    </>
   )
 }
