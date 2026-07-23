@@ -6,12 +6,13 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react()],
-  // Reuse (not regenerate): reference the approved design components from the design repo
-  // (agents/design-handoff.md). They live OUTSIDE src/, so token-drift never scans their raw
-  // values — the FE only wires the delta. The shared theme is the single token source.
+  // Reuse (not regenerate): the FE VENDORS a copy of the approved components into ./design/
+  // (Youhue-DESIGN is a reference-only folder — never a build dependency). ./design/ lives OUTSIDE
+  // src/, so token-drift/coverage never scan its raw values — the FE only wires the delta.
+  // Re-sync a design change with `pwsh ./sync-design.ps1`.
   resolve: {
     alias: {
-      '@design': fileURLToPath(new URL('../Youhue-DESIGN/approved', import.meta.url)),
+      '@design': fileURLToPath(new URL('./design/approved', import.meta.url)),
     },
   },
   server: {
