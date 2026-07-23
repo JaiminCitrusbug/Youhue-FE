@@ -82,10 +82,13 @@ describe("AppRoutes (role-aware router)", () => {
     expect(screen.getByRole("heading", { name: /district admin/i })).toBeInTheDocument()
   })
 
-  it("resolves the admin console for an admin-kind session", () => {
+  it("resolves the admin console for an admin-kind session (FR-19-05 · SC-079 default word lists)", () => {
     state.user = { subject_id: "1", kind: "admin", role: null, school_id: null }
     renderAt("/app/admin")
-    expect(screen.getByRole("heading", { name: /admin console/i })).toBeInTheDocument()
+    // The admin console's first built screen is the default concern-word lists editor.
+    expect(
+      screen.getByRole("heading", { name: /default concern-word lists/i }),
+    ).toBeInTheDocument()
   })
 
   it("shows a loading state while the session is still resolving", () => {

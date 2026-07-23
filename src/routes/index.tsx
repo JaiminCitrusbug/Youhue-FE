@@ -11,6 +11,7 @@ import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { AdminSignInApp } from "./admin-signin"
+import { DefaultWordListsApp } from "./admin-word-lists"
 import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
 
@@ -89,11 +90,13 @@ export function AppRoutes() {
             </RequireRole>
           }
         />
+        {/* FR-19-05 — the internal admin console. SC-079 (default concern-word lists) is its first
+            built screen; the console shell/landing + further screens are FR-19-02/04/07. */}
         <Route
           path="admin"
           element={
             <RequireRole allow={ROLE_ROUTES.admin}>
-              <Placeholder title="Admin console" />
+              <DefaultWordListsApp />
             </RequireRole>
           }
         />
