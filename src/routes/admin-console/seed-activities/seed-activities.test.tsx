@@ -72,7 +72,8 @@ describe("SeedActivities screen (FR-19-04)", () => {
     render(<SeedActivities />)
     await screen.findByText("Box breathing")
 
-    await user.click(screen.getByRole("button", { name: /new activity/i }))
+    // "Author / edit" is the approved screen's own right-hand control (now a live toggle).
+    await user.click(screen.getByRole("button", { name: /author \/ edit/i }))
     await user.type(screen.getByLabelText("Activity"), "Body scan")
     await user.selectOptions(screen.getByLabelText("Type"), "grounding")
     await user.type(screen.getByLabelText("Topic"), "  Calm  ")
@@ -125,12 +126,13 @@ describe("SeedActivities screen (FR-19-04)", () => {
     await waitFor(() => expect(reinstateMock).toHaveBeenCalledWith("a3"))
   })
 
-  it("toggling 'Show retired' re-queries with include_retired=true", async () => {
+  it("switching the filter to 'Include retired' re-queries with include_retired=true", async () => {
     const user = userEvent.setup()
     render(<SeedActivities />)
     await screen.findByText("Box breathing")
 
-    await user.click(screen.getByLabelText(/show retired/i))
+    // Approved SegmentedControl primitive replaces the hand-rolled checkbox; same behaviour.
+    await user.click(screen.getByRole("button", { name: /include retired/i }))
     await waitFor(() => expect(listMock).toHaveBeenCalledWith(true))
   })
 
