@@ -136,7 +136,8 @@ export function StaffSignInScreen() {
         <>
           <div>
             <Link to="/sign-in/forgot">Forgot password?</Link> &nbsp;·&nbsp;{" "}
-            <a href="#">Register a new school</a>
+            {/* FR-02-01 — was a dead `href="#"`; now routes to the real school-registration screen. */}
+            <Link to="/register-school">Register a new school</Link>
           </div>
           <div className={LEGAL_LINKS_CLS}>
             <Link to="/terms">Terms</Link>

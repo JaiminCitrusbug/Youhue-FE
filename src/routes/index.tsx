@@ -11,6 +11,7 @@ import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { AdminSignInApp } from "./admin-signin"
+import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
 
 function Placeholder({ title }: { title: string }) {
@@ -51,6 +52,8 @@ export function AppRoutes() {
       <Route path="/sign-in/*" element={<StaffAuthRoutes />} />
       {/* FR-01-02 — student passwordless sign-in owns its own route module (decision #4). */}
       <Route path="/student/sign-in/*" element={<StudentSignInApp />} />
+      {/* FR-02-01 — pre-login school self-registration owns its own route module (decision #4). */}
+      <Route path="/register-school/*" element={<SchoolRegisterApp />} />
       {/* FR-19-01 — internal admin console sign-in owns its own route module (decision #4). */}
       <Route path="/admin/sign-in/*" element={<AdminSignInApp />} />
       <Route

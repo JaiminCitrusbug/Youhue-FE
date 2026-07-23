@@ -94,6 +94,12 @@ describe("AppRoutes (role-aware router)", () => {
     expect(screen.getByText(/loading/i)).toBeInTheDocument()
   })
 
+  // FR-02-01 — the pre-login school-registration module is mounted on a real route.
+  it("mounts the school self-registration screen at /register-school", () => {
+    renderAt("/register-school")
+    expect(screen.getByRole("heading", { name: /register your school/i })).toBeInTheDocument()
+  })
+
   it("shows a maintenance page and 404 for unknown routes", () => {
     renderAt("/maintenance")
     expect(screen.getByText(/down for maintenance/i)).toBeInTheDocument()
