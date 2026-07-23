@@ -134,4 +134,44 @@ describe("AdminSignInApp (FR-19-01)", () => {
     renderApp("/admin/sign-in/verify")
     expect(screen.getByRole("heading", { name: /mfa challenge/i })).toBeInTheDocument()
   })
+
+  // ── look source: the screens must come from the APPROVED design library (@design) ───────────
+  it("renders the approved AuthCard chrome (wordmark + copy) on the credentials screen", () => {
+    renderApp("/admin/sign-in")
+    // AuthCard/Logo come from @design — the wrapper contributes no chrome of its own.
+    expect(screen.getByText("Student Wellbeing")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: /internal admin/i })).toBeInTheDocument()
+    expect(screen.getByText(/mfa required/i)).toBeInTheDocument()
+    // approved Divider + info Banner, in the approved order
+    expect(screen.getByText("then")).toBeInTheDocument()
+    expect(screen.getByText(/asked for a 6-digit mfa code/i)).toBeInTheDocument()
+  })
+
+  it("renders the approved AuthCard chrome + footer on the MFA challenge", () => {
+    renderApp("/admin/sign-in/verify")
+    expect(screen.getByText("Student Wellbeing")).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: /contact platform security/i })).toBeInTheDocument()
+  })
+
+  it("keeps the code numeric and capped at 6 digits", async () => {
+    const user = userEvent.setup()
+    renderApp("/admin/sign-in/verify")
+    const code = screen.getByLabelText(/6-digit code/i)
+    await user.type(code, "12ab34-5678")
+    expect(code).toHaveValue("123456")
+  })
+
+  it("disables the actions and shows progress copy while a phase is in flight", async () => {
+    const user = userEvent.setup()
+    let release: (v: AdminSignInResponse) => void = () => {}
+    api.adminSignIn.mockReturnValueOnce(new Promise<AdminSignInResponse>((r) => (release = r)))
+    renderApp("/admin/sign-in")
+
+    await enterCredentials(user)
+    const button = await screen.findByRole("button", { name: /checking/i })
+    expect(button).toBeDisabled()
+
+    release(PHASE1)
+    expect(await screen.findByRole("heading", { name: /mfa challenge/i })).toBeInTheDocument()
+  })
 })
