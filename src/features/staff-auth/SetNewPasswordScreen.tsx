@@ -6,7 +6,7 @@
 import * as React from "react"
 import { Link, useNavigate, useSearchParams } from "react-router-dom"
 
-import { AuthCard, AuthField, Button, Input } from "../../components/ui"
+import { AuthCard, AuthField, Button, Input } from "@design/components"
 import { staffResetPassword } from "./api"
 
 export function SetNewPasswordScreen() {

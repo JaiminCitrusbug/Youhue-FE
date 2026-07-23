@@ -7,7 +7,7 @@
 import * as React from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 
-import { AuthCard, Banner, Button, Icon } from "../../components/ui"
+import { AuthCard, Banner, Button, Icon } from "@design/components"
 import { staffSsoLink } from "./api"
 import { useSignInComplete } from "./session"
 import type { SsoLinkRequired } from "./sso"

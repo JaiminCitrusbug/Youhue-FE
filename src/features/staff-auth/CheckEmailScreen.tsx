@@ -4,7 +4,7 @@
  */
 import { useNavigate } from "react-router-dom"
 
-import { AuthCard, Banner, Button, Icon } from "../../components/ui"
+import { AuthCard, Banner, Button, Icon } from "@design/components"
 
 export function CheckEmailScreen() {
   const navigate = useNavigate()

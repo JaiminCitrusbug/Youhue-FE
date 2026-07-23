@@ -7,7 +7,7 @@
 import * as React from "react"
 import { Link, useNavigate } from "react-router-dom"
 
-import { AuthCard, AuthField, Button, Input } from "../../components/ui"
+import { AuthCard, AuthField, Button, Input } from "@design/components"
 import { staffForgotPassword } from "./api"
 
 export function ForgotPasswordScreen() {

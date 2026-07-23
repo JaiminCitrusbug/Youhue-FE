@@ -1,13 +1,15 @@
 /**
- * SC-014 — Staff sign-in (FR-01-03 · US-01-03). Reproduces the approved StaffSignIn design screen
- * on the shared primitives, wired to the staff-auth API. Two credential methods: email/password
+ * SC-014 — Staff sign-in (FR-01-03 · US-01-03). REUSES the approved StaffSignIn design screen —
+ * the composition below is the approved screen's markup, built from the vendored approved
+ * primitives (`@design/components`); this file adds only the delta (state, API, errors, routing).
+ * Two credential methods: email/password
  * and Google/Microsoft SSO. Errors are GENERIC (no account-existence disclosure). If the BE reports
  * `mfa_required`, an in-card verification step follows before the session is issued.
  */
 import * as React from "react"
 import { Link, useLocation, useNavigate } from "react-router-dom"
 
-import { AuthCard, AuthField, Button, Divider, Input } from "../../components/ui"
+import { AuthCard, AuthField, Button, Divider, Input } from "@design/components"
 import { staffMfaVerify, staffSignIn } from "./api"
 import { resolveSchoolCode, useSignInComplete } from "./session"
 import { startSso, type SsoProvider } from "./sso"
