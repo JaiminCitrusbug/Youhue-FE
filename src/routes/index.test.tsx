@@ -10,6 +10,14 @@ vi.mock("../app/AuthContext", () => ({
   useAuth: () => ({ user: state.user, loading: state.loading, refresh: vi.fn(), signOut: vi.fn() }),
 }))
 
+// The admin console's first screen (DefaultWordListsApp) now GETs the current default on mount
+// (FR-19-05 Blocker-1 fix). This router test only asserts the route RESOLVES, so stub the read to a
+// deterministic empty default — otherwise the on-mount fetch settles after the assertion and warns.
+vi.mock("./admin-word-lists/api", () => ({
+  getDefaultConcernWords: vi.fn(async () => ({ words: [], count: 0, is_default: true })),
+  saveDefaultConcernWords: vi.fn(),
+}))
+
 function renderAt(path: string) {
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -82,13 +90,15 @@ describe("AppRoutes (role-aware router)", () => {
     expect(screen.getByRole("heading", { name: /district admin/i })).toBeInTheDocument()
   })
 
-  it("resolves the admin console for an admin-kind session (FR-19-05 · SC-079 default word lists)", () => {
+  it("resolves the admin console for an admin-kind session (FR-19-05 · SC-079 default word lists)", async () => {
     state.user = { subject_id: "1", kind: "admin", role: null, school_id: null }
     renderAt("/app/admin")
     // The admin console's first built screen is the default concern-word lists editor.
     expect(
       screen.getByRole("heading", { name: /default concern-word lists/i }),
     ).toBeInTheDocument()
+    // let the on-mount default-list read settle (empty), so its state update is wrapped in act
+    expect(await screen.findByText(/no default words yet/i)).toBeInTheDocument()
   })
 
   it("shows a loading state while the session is still resolving", () => {
