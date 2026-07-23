@@ -61,7 +61,11 @@ describe("DefaultWordListsApp (FR-19-05 · SC-079)", () => {
     const user = userEvent.setup()
     render(<DefaultWordListsApp />)
     await addWord(user, "hungry")
-    await user.click(screen.getByRole("button", { name: /remove hungry/i }))
+    // The approved `Chip` primitive labels its remove control "remove" (design/approved/components/
+    // feedback.tsx:53) — it carries no per-word name. Logged as a design-library a11y finding; the
+    // behavioural assertion below is unchanged. Exactly one chip is on screen here, so this is
+    // unambiguous.
+    await user.click(screen.getByRole("button", { name: /^remove$/i }))
     expect(screen.queryByText("hungry")).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: /save/i })).toBeDisabled()
   })
