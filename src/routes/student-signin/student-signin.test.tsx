@@ -6,6 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { StudentSignInApp } from "./index"
 import type { StudentSignInResponse } from "./api"
 
+// Behaviour tests for the student sign-in screens, composed from the approved primitives
+// (@design/components) on the approved screens' structure/copy/classes. Same coverage and the same
+// assertions as before the look-source refactor, plus guards that the preview-only scaffolding
+// (device bezel, `href="#"` dead links) does NOT ship.
+
 const api = vi.hoisted(() => ({ studentSignIn: vi.fn() }))
 vi.mock("./api", () => ({ studentSignIn: api.studentSignIn }))
 
@@ -32,9 +37,22 @@ describe("StudentSignInApp (FR-01-02)", () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
-  it("Continue is disabled until a code is typed", () => {
+  it("Continue is disabled until a code is typed", async () => {
+    const user = userEvent.setup()
     renderApp("/student/sign-in")
+
     expect(screen.getByRole("button", { name: /continue/i })).toBeDisabled()
+
+    await user.type(screen.getByRole("textbox", { name: /class or school code/i }), "m")
+    expect(screen.getByRole("button", { name: /continue/i })).toBeEnabled()
+  })
+
+  it("ships no dead controls: the footer links route (no href='#')", () => {
+    renderApp("/student/sign-in")
+    for (const link of screen.getAllByRole("link")) {
+      expect(link).toHaveAttribute("href", "/terms")
+    }
+    expect(screen.getAllByRole("link").length).toBeGreaterThan(0)
   })
 
   it("signs in with a class/school code + name selection, then lands on the daily check-in", async () => {
@@ -67,6 +85,27 @@ describe("StudentSignInApp (FR-01-02)", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/didn't work/i)
     expect(screen.queryByText(/daily check-in/i)).not.toBeInTheDocument()
+  })
+
+  it("surfaces a busy state while the sign-in is in flight and disables a double submit", async () => {
+    const user = userEvent.setup()
+    let settle: (r: StudentSignInResponse) => void = () => {}
+    api.studentSignIn.mockReturnValue(
+      new Promise<StudentSignInResponse>((resolve) => {
+        settle = resolve
+      }),
+    )
+    renderApp("/student/sign-in/who")
+
+    await user.click(screen.getByRole("button", { name: /that's me/i }))
+    expect(await screen.findByRole("status")).toHaveTextContent(/signing you in/i)
+
+    expect(screen.getByRole("button", { name: /that's me/i })).toBeDisabled()
+    await user.click(screen.getByRole("button", { name: /that's me/i }))
+    expect(api.studentSignIn).toHaveBeenCalledTimes(1)
+
+    settle(OK)
+    await waitFor(() => expect(auth.refresh).toHaveBeenCalled())
   })
 
   it("offers the QR method, and can switch back to typing a code", async () => {
