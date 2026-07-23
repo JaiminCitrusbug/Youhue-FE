@@ -9,7 +9,10 @@ const NAV_BY_ROLE: Record<string, { label: string; to: string }[]> = {
   support: [{ label: "Shared class", to: "/app/dashboard" }],
   leadership: [{ label: "Leadership overview", to: "/app/leadership" }],
   district: [{ label: "District admin", to: "/app/district" }],
-  admin: [{ label: "Admin console", to: "/app/admin" }],
+  admin: [
+    { label: "Admin console", to: "/app/admin" },
+    { label: "Seed activities", to: "/app/admin/seed-activities" },
+  ],
 }
 
 export function AppShell() {

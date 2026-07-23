@@ -9,6 +9,7 @@ import { StudentShell } from "../components/layout/StudentShell"
 import { Maintenance, NotFound404, ServerError500, Terms } from "../components/layout/system"
 import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
+import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { AdminSignInApp } from "./admin-signin"
 import { StudentSignInApp } from "./student-signin"
 
@@ -90,6 +91,16 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.admin}>
               <Placeholder title="Admin console" />
+            </RequireRole>
+          }
+        />
+        {/* FR-19-04 — seed activity maintenance lives inside the admin console, behind admin auth
+            (the same RequireRole gate; the BE also enforces the manage_seed RBAC permission). */}
+        <Route
+          path="admin/seed-activities"
+          element={
+            <RequireRole allow={ROLE_ROUTES.admin}>
+              <SeedActivities />
             </RequireRole>
           }
         />
