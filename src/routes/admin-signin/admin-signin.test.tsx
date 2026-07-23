@@ -32,6 +32,20 @@ async function enterCredentials(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: /continue/i }))
 }
 
+// The approved SC-073 MFA challenge is six single-digit boxes over ONE value. The boxes keep the
+// approved per-box names ("Digit 1".."Digit 6"); the row itself carries the field's name.
+const digitBoxes = () => screen.getAllByLabelText(/^digit \d$/i) as HTMLInputElement[]
+/** The single underlying value the six boxes present. */
+const codeValue = () => digitBoxes().map((b) => b.value).join("")
+
+/** Type into the row from the first empty box — i.e. exactly what a keyboard user does. */
+async function typeCode(user: ReturnType<typeof userEvent.setup>, text: string) {
+  const boxes = digitBoxes()
+  const next = boxes.findIndex((b) => !b.value)
+  await user.click(boxes[next === -1 ? boxes.length - 1 : next])
+  await user.keyboard(text)
+}
+
 describe("AdminSignInApp (FR-19-01)", () => {
   beforeEach(() => {
     api.adminSignIn.mockReset()
@@ -65,7 +79,7 @@ describe("AdminSignInApp (FR-19-01)", () => {
 
     // MFA challenge appears
     expect(await screen.findByRole("heading", { name: /mfa challenge/i })).toBeInTheDocument()
-    await user.type(screen.getByLabelText(/6-digit code/i), "481902")
+    await typeCode(user, "481902")
     await user.click(screen.getByRole("button", { name: /verify/i }))
 
     // phase 2: SAME email+password RESUBMITTED with the code
@@ -98,7 +112,7 @@ describe("AdminSignInApp (FR-19-01)", () => {
 
     await enterCredentials(user)
     await screen.findByRole("heading", { name: /mfa challenge/i })
-    await user.type(screen.getByLabelText(/6-digit code/i), "000000")
+    await typeCode(user, "000000")
     await user.click(screen.getByRole("button", { name: /verify/i }))
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/sign-in failed/i)
@@ -113,9 +127,9 @@ describe("AdminSignInApp (FR-19-01)", () => {
     await screen.findByRole("heading", { name: /mfa challenge/i })
 
     expect(screen.getByRole("button", { name: /verify/i })).toBeDisabled()
-    await user.type(screen.getByLabelText(/6-digit code/i), "1234")
+    await typeCode(user, "1234")
     expect(screen.getByRole("button", { name: /verify/i })).toBeDisabled()
-    await user.type(screen.getByLabelText(/6-digit code/i), "56")
+    await typeCode(user, "56")
     expect(screen.getByRole("button", { name: /verify/i })).toBeEnabled()
   })
 
@@ -144,7 +158,8 @@ describe("AdminSignInApp (FR-19-01)", () => {
     expect(screen.getByText(/mfa required/i)).toBeInTheDocument()
     // approved Divider + info Banner, in the approved order
     expect(screen.getByText("then")).toBeInTheDocument()
-    expect(screen.getByText(/asked for a 6-digit mfa code/i)).toBeInTheDocument()
+    // copy follows PRODUCT TRUTH (the BE emails the OTP, api.ts:5-6), on BOTH phases
+    expect(screen.getByText(/email you a 6-digit code to finish signing in/i)).toBeInTheDocument()
   })
 
   it("renders the approved AuthCard chrome + footer on the MFA challenge", () => {
@@ -156,9 +171,45 @@ describe("AdminSignInApp (FR-19-01)", () => {
   it("keeps the code numeric and capped at 6 digits", async () => {
     const user = userEvent.setup()
     renderApp("/admin/sign-in/verify")
-    const code = screen.getByLabelText(/6-digit code/i)
-    await user.type(code, "12ab34-5678")
-    expect(code).toHaveValue("123456")
+    await typeCode(user, "12ab34-5678")
+    expect(codeValue()).toBe("123456")
+  })
+
+  // ── the approved 6-box code entry (design/approved/screens/AdminSignIn.tsx CodeBoxes) ───────
+  it("renders the approved six single-digit code boxes, named as one 6-digit code field", () => {
+    renderApp("/admin/sign-in/verify")
+    expect(digitBoxes()).toHaveLength(6)
+    // the row itself carries the field's accessible name
+    expect(screen.getByLabelText(/6-digit code/i)).toBeInTheDocument()
+    // one real, focusable control per box (never a decorative div behind an sr-only input):
+    // focus is on the first box, so the approved focus style has something to apply to
+    expect(digitBoxes()[0]).toHaveFocus()
+    digitBoxes().forEach((b) => {
+      expect(b.tagName).toBe("INPUT")
+      expect(b).toHaveAttribute("autocomplete", "one-time-code")
+      expect(b).toHaveAttribute("inputmode", "numeric")
+    })
+  })
+
+  it("pastes a spaced code into the box row as one 6-digit value", async () => {
+    const user = userEvent.setup()
+    renderApp("/admin/sign-in/verify")
+    await user.click(digitBoxes()[0])
+    await user.paste("481 902")
+    expect(codeValue()).toBe("481902")
+    expect(screen.getByRole("button", { name: /verify/i })).toBeEnabled()
+  })
+
+  it("auto-advances on entry and steps back on backspace, keeping one value", async () => {
+    const user = userEvent.setup()
+    renderApp("/admin/sign-in/verify")
+    await typeCode(user, "48")
+    expect(codeValue()).toBe("48")
+    expect(digitBoxes()[2]).toHaveFocus()
+    // backspace from the empty box removes the previous digit and moves focus back to it
+    await user.keyboard("{Backspace}")
+    expect(codeValue()).toBe("4")
+    expect(digitBoxes()[1]).toHaveFocus()
   })
 
   it("disables the actions and shows progress copy while a phase is in flight", async () => {
