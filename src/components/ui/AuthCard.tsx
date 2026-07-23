@@ -8,7 +8,7 @@ import * as React from "react"
 
 import { Logo } from "./Logo"
 
-const CARD_WRAP = "flex min-h-[560px] items-center justify-center bg-canvas p-8" // token-ok: approved Design-final-v3 value (do-not-restyle)
+const CARD_WRAP = "flex min-h-screen items-center justify-center bg-canvas p-4 sm:p-8" // token-ok: approved Design-final-v3 value (do-not-restyle)
 const CARD_BODY = "w-[400px] max-w-full rounded-2xl border border-neutral-200 bg-surface p-7 shadow-pop" // token-ok: approved Design-final-v3 value (do-not-restyle)
 const CARD_TITLE = "mt-1.5 text-center text-[21px] font-extrabold tracking-tighter" // token-ok: approved Design-final-v3 value (do-not-restyle)
 const CARD_SUB = "mb-5 mt-1.5 text-center text-[13px] text-neutral-500" // token-ok: approved Design-final-v3 value (do-not-restyle)

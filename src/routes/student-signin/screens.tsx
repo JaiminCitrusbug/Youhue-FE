@@ -75,7 +75,7 @@ export function SignInCode({ code, onChange, onContinue, onScanQR, school = "Oak
         Tap to type your code
       </div>
 
-      <div className="mt-auto flex flex-col gap-2 pt-2">
+      <div className="mt-auto flex flex-col gap-2.5 pt-2">
         <button
           type="button"
           onClick={onContinue}
@@ -111,7 +111,7 @@ export interface SignInQRProps {
 export function SignInQR({ onBack, onTypeCode }: SignInQRProps) {
   return (
     <StudentScreen>
-      <div className="flex items-center gap-3 pb-1 pt-1">
+      <div className="flex items-center gap-2.5 pb-1 pt-1">
         <button
           type="button"
           onClick={onBack}
@@ -141,7 +141,7 @@ export function SignInQR({ onBack, onTypeCode }: SignInQRProps) {
         You can use this camera or your device&apos;s camera app.
       </p>
 
-      <div className="mt-auto flex flex-col gap-2 pt-2">
+      <div className="mt-auto flex flex-col gap-2.5 pt-2">
         <button
           type="button"
           onClick={onTypeCode}
@@ -208,7 +208,7 @@ export function SignInName({
 
   return (
     <StudentScreen>
-      <div className="flex items-center gap-3 pb-1 pt-1">
+      <div className="flex items-center gap-2.5 pb-1 pt-1">
         <button
           type="button"
           onClick={onBack}
@@ -256,7 +256,7 @@ export function SignInName({
         </p>
       ) : null}
 
-      <div className="mt-auto flex flex-col gap-2 pt-3">
+      <div className="mt-auto flex flex-col gap-2.5 pt-3">
         <button
           type="button"
           onClick={() => onConfirm(roster[selected].id)}

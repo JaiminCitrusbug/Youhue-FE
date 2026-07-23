@@ -82,7 +82,7 @@ export const theme = {
     pop:   '0 8px 28px rgba(16,24,40,0.12)',
     focus: '0 0 0 3px rgba(255,90,95,0.35)', // coral focus ring (both faces)
   },
-  spacing: { /* 4px base — Tailwind default scale */ },
+  spacing: { '4.5': '1.125rem', '5.5': '1.375rem' },
 } as const;
 
 export default theme;

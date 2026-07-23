@@ -37,7 +37,7 @@ export function AppShell() {
       </aside>
       <div className="flex flex-1 flex-col">
         {/* topbar: bell THEN profile (owner-approved order); logout lives in the profile block */}
-        <header className="flex items-center justify-end gap-3 border-b border-neutral-200 bg-surface px-6 py-3">
+        <header className="flex items-center justify-end gap-2.5 border-b border-neutral-200 bg-surface px-6 py-3">
           {/* Notifications surface is not built yet (no route/feature exists) — DEFERRED.
               Rendered in an explicit disabled state so it is not an inert live control. */}
           <button
