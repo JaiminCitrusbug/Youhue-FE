@@ -128,7 +128,7 @@ export function CodeScreen({ code, onChange, onContinue, onScanQR, school = "Oak
         </button>
       </div>
 
-      {/* Real routed links — the approved preview's `href="#"` placeholders never ship. */}
+      {/* Real routed links — the approved preview's dead `href="#"` anchors never ship. */}
       <div className={FOOT}>
         <Link to="/terms" className="text-neutral-400">
           Privacy

@@ -9,8 +9,8 @@ import { KeyboardIcon } from "./CodeScreen"
  *
  * COMPOSED from the approved primitives (`@design/components`), mirroring the structure, copy and
  * classes of `design/approved/screens/StudentSignInQR.tsx` EXACTLY — minus the preview-only
- * `PhoneFrame` bezel (the surface is full-bleed, owned by ./index) and minus the `href="#"` footer
- * placeholders (real routed links here). Every px/size is the approved design's own value.
+ * `PhoneFrame` bezel (the surface is full-bleed, owned by ./index) and minus the dead `href="#"`
+ * footer anchors (real routed links here). Every px/size is the approved design's own value.
  */
 
 const HEAD_ROW = "flex items-center gap-2.5 pb-0.5 pt-1.5"
@@ -72,7 +72,7 @@ export function QRScreen({ onBack, onTypeCode }: QRScreenProps) {
         </button>
       </div>
 
-      {/* Real routed links — the approved preview's `href="#"` placeholders never ship. */}
+      {/* Real routed links — the approved preview's dead `href="#"` anchors never ship. */}
       <div className={FOOT}>
         <Link to="/terms" className="text-neutral-400">
           Privacy
