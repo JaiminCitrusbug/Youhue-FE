@@ -30,7 +30,7 @@ export interface RegisterSchoolFormProps {
   onSubmit: () => void
   submitting: boolean
   error: string | null
-  /** 403/409 — the school (or the account) already exists, so offer the real way forward. */
+  /** 409 — a school with this name already exists, so offer the real way forward (sign in). */
   offerSignIn: boolean
 }
 

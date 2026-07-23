@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 
-import { registerSchool, type RegisterSchoolResponse } from "./api"
+import { registerSchool } from "./api"
 import { RegisterSchoolScreen, RegistrationPendingScreen } from "./RegisterSchoolScreen"
 
 // FR-02-01 · SC-026 — school self-registration owns its OWN FE route module (the same layout the
@@ -13,9 +13,9 @@ import { RegisterSchoolScreen, RegistrationPendingScreen } from "./RegisterSchoo
 //
 // A teacher self-registers; the backend creates the school in a **pending** state that is not live
 // and cannot run student check-ins until a District/Trust admin approves it (FR-02-02, out of scope
-// here). The two "already exists" outcomes are surfaced as guidance with a real route to sign-in:
-// the backend refuses to create a duplicate (409 join / 403 already-a-member), it does not fail
-// silently.
+// here). A duplicate school name is refused with a terminal 409 and surfaced as guidance (sign in,
+// or ask a colleague to invite you) with a real route to sign-in — there is NO join endpoint to
+// build against. A registration is never failed silently.
 
 const REGISTER_PATH = "/register-school"
 
@@ -28,7 +28,7 @@ export function SchoolRegisterApp() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [offerSignIn, setOfferSignIn] = useState(false)
-  const [registered, setRegistered] = useState<RegisterSchoolResponse | null>(null)
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
   const [registeredName, setRegisteredName] = useState("")
 
   async function submit() {
@@ -44,11 +44,11 @@ export function SchoolRegisterApp() {
       })
       if (outcome.kind === "created") {
         setRegisteredName(schoolName.trim())
-        setRegistered(outcome.school)
+        setPendingStatus(outcome.status)
       } else {
         setError(outcome.message)
-        // 403/409 — the way forward is signing in, so offer it as a real control.
-        setOfferSignIn(outcome.reason === "conflict" || outcome.reason === "forbidden")
+        // 409 (name taken) — the way forward is signing in, so offer it as a real control.
+        setOfferSignIn(outcome.reason === "conflict")
       }
     } catch {
       setError(NETWORK_ERROR)
@@ -57,8 +57,8 @@ export function SchoolRegisterApp() {
     }
   }
 
-  const screen = registered ? (
-    <RegistrationPendingScreen schoolName={registeredName} status={registered.status} />
+  const screen = pendingStatus !== null ? (
+    <RegistrationPendingScreen schoolName={registeredName} status={pendingStatus} />
   ) : (
     <RegisterSchoolScreen
       schoolName={schoolName}

@@ -13,10 +13,7 @@ import type { RegisterOutcome } from "./api"
 const api = vi.hoisted(() => ({ registerSchool: vi.fn() }))
 vi.mock("./api", () => ({ registerSchool: api.registerSchool }))
 
-const CREATED: RegisterOutcome = {
-  kind: "created",
-  school: { school_id: "3f0f6c3e-0000-4000-8000-000000000001", status: "pending" },
-}
+const CREATED: RegisterOutcome = { kind: "created", status: "pending" }
 
 function renderApp() {
   render(
@@ -63,7 +60,7 @@ describe("SchoolRegisterApp (FR-02-01)", () => {
 
   it("renders whatever lifecycle status the server reports, not a hardcoded word", async () => {
     const user = userEvent.setup()
-    api.registerSchool.mockResolvedValue({ kind: "created", school: { school_id: "s1", status: "awaiting_review" } })
+    api.registerSchool.mockResolvedValue({ kind: "created", status: "awaiting_review" })
     renderApp()
 
     await fillForm(user)
@@ -85,40 +82,42 @@ describe("SchoolRegisterApp (FR-02-01)", () => {
     expect(screen.getByText(/approve it before it goes live/i)).toBeInTheDocument()
   })
 
-  // --- Scenario 3 (NEG): a later teacher joins the existing approved school, no duplicate -------
-  it("surfaces the 409 duplicate conflict as guidance to join/sign in, and offers a real route", async () => {
+  // --- Scenario 3 (NEG): a later teacher of an existing school gets terminal guidance, no dupe ---
+  it("surfaces the 409 name conflict as terminal guidance to sign in, and offers a real route", async () => {
     const user = userEvent.setup()
     api.registerSchool.mockResolvedValue({
       kind: "failed",
       reason: "conflict",
-      message: "A school with this name is already registered and approved. Sign in, or ask a colleague there to invite you — we won't create a duplicate.",
+      message: "A school with this name is already registered with Youhue. If it's your school, sign in — or ask a colleague there to invite you. We won't create a duplicate.",
     })
     renderApp()
 
     await fillForm(user)
     await user.click(submitButton())
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/already registered and approved/i)
+    const alert = await screen.findByRole("alert")
+    expect(alert).toHaveTextContent(/already registered with youhue/i)
+    // no join flow is promised (no join endpoint exists) and no tenant id is shown
+    expect(alert).not.toHaveTextContent(/\bjoin\b/i)
     expect(screen.queryByRole("heading", { name: /registration submitted/i })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: /go to sign in/i }))
     expect(screen.getByRole("heading", { name: /sign in to student wellbeing/i })).toBeInTheDocument()
   })
 
-  it("surfaces the 403 already-a-member case and routes the teacher to sign in", async () => {
+  it("treats an already-registered email as an ordinary pending success (reveals no account signal)", async () => {
+    // The hardened backend returns 201 for a known email too; the screen must show the same neutral
+    // pending confirmation and say nothing about an account or tenant already existing.
     const user = userEvent.setup()
-    api.registerSchool.mockResolvedValue({
-      kind: "failed",
-      reason: "forbidden",
-      message: "This email already belongs to a school. Please sign in instead.",
-    })
+    api.registerSchool.mockResolvedValue(CREATED)
     renderApp()
 
     await fillForm(user)
     await user.click(submitButton())
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/already belongs to a school/i)
-    expect(screen.getByRole("button", { name: /go to sign in/i })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: /registration submitted/i })).toBeInTheDocument()
+    expect(screen.queryByText(/already (belongs|exists|registered)/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/sign in instead/i)).not.toBeInTheDocument()
   })
 
   // --- server-side validation is the gate: the 422 becomes a real, visible message --------------
