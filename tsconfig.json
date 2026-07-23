@@ -12,6 +12,8 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": { "@design/*": ["../Youhue-DESIGN/approved/*"] },
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

@@ -1,9 +1,19 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from 'node:url'
+
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react()],
+  // Reuse (not regenerate): reference the approved design components from the design repo
+  // (agents/design-handoff.md). They live OUTSIDE src/, so token-drift never scans their raw
+  // values — the FE only wires the delta. The shared theme is the single token source.
+  resolve: {
+    alias: {
+      '@design': fileURLToPath(new URL('../Youhue-DESIGN/approved', import.meta.url)),
+    },
+  },
   server: {
     port: 5173,
     // Dev proxy: the SPA calls the BE with a relative `/api/v1` base (src/api/client.ts keeps the
