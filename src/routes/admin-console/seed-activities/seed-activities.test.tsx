@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -51,6 +51,13 @@ const RETIRED: SeedActivity = {
   active: false,
 }
 
+/** The table row that carries `title` — lets a test scope an assertion to one activity. */
+function rowFor(title: string): HTMLElement {
+  const row = screen.getByText(title).closest("tr")
+  if (!row) throw new Error(`no table row found for "${title}"`)
+  return row
+}
+
 describe("SeedActivities screen (FR-19-04)", () => {
   beforeEach(() => {
     listMock.mockReset().mockResolvedValue([BOX, JAR])
@@ -74,6 +81,7 @@ describe("SeedActivities screen (FR-19-04)", () => {
 
     // "Author / edit" is the approved screen's own right-hand control (now a live toggle).
     await user.click(screen.getByRole("button", { name: /author \/ edit/i }))
+    expect(screen.getByText("New seed activity")).toBeInTheDocument()
     await user.type(screen.getByLabelText("Activity"), "Body scan")
     await user.selectOptions(screen.getByLabelText("Type"), "grounding")
     await user.type(screen.getByLabelText("Topic"), "  Calm  ")
@@ -91,20 +99,30 @@ describe("SeedActivities screen (FR-19-04)", () => {
     await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2))
   })
 
-  it("edits an activity inline — PATCHes the changed fields", async () => {
+  // The approved copy on the right-hand control is "Author / edit", so the panel it opens must do
+  // both: a row's Edit action opens THE SAME panel pre-filled, in edit mode, and it PATCHes.
+  it("edits an activity in the 'Author / edit' panel — pre-filled, PATCHes the changed fields", async () => {
     const user = userEvent.setup()
     render(<SeedActivities />)
     await screen.findByText("Box breathing")
 
     await user.click(screen.getByRole("button", { name: /edit box breathing/i }))
-    const title = screen.getByLabelText("Edit activity title")
+    expect(screen.getByText("Edit seed activity")).toBeInTheDocument()
+
+    const title = screen.getByLabelText("Activity")
+    expect(title).toHaveValue("Box breathing") // pre-filled with the row, not a blank create form
+    expect(screen.getByLabelText("Topic")).toHaveValue("Healthy habits")
+
     await user.clear(title)
     await user.type(title, "Box breathing v2")
-    await user.click(screen.getByRole("button", { name: /^save$/i }))
+    await user.click(screen.getByRole("button", { name: /save changes/i }))
 
     await waitFor(() =>
       expect(updateMock).toHaveBeenCalledWith("a1", expect.objectContaining({ title: "Box breathing v2" })),
     )
+    expect(createMock).not.toHaveBeenCalled()
+    // the panel closes and falls back to author mode
+    await waitFor(() => expect(screen.queryByText("Edit seed activity")).toBeNull())
   })
 
   it("retires an activity (soft remove from the set)", async () => {
@@ -124,6 +142,77 @@ describe("SeedActivities screen (FR-19-04)", () => {
 
     await user.click(screen.getByRole("button", { name: /reinstate old drill/i }))
     await waitFor(() => expect(reinstateMock).toHaveBeenCalledWith("a3"))
+  })
+
+  // M3 — the retired row is the delta with no approved visual; pin what it actually shows.
+  it("marks a retired activity as Retired and offers re-instate in place of retire", async () => {
+    listMock.mockResolvedValue([BOX, RETIRED])
+    render(<SeedActivities />)
+    await screen.findByText("Old drill")
+
+    const retired = within(rowFor("Old drill"))
+    expect(retired.getByText("Retired")).toBeInTheDocument()
+    expect(retired.getByRole("button", { name: /reinstate old drill/i })).toBeInTheDocument()
+    expect(retired.queryByRole("button", { name: /^retire/i })).toBeNull()
+
+    const active = within(rowFor("Box breathing"))
+    expect(active.queryByText("Retired")).toBeNull()
+    expect(active.getByRole("button", { name: /retire box breathing/i })).toBeInTheDocument()
+  })
+
+  // M5 — the Type column is a delta column; pin that it renders the label, not the wire enum.
+  it("shows the Type column using the display label, never the wire enum", async () => {
+    render(<SeedActivities />)
+    await screen.findByText("Box breathing")
+
+    expect(screen.getByRole("columnheader", { name: "Type" })).toBeInTheDocument()
+    const box = within(rowFor("Box breathing"))
+    expect(box.getByText("Breathing")).toBeInTheDocument()
+    expect(box.queryByText("breathing")).toBeNull()
+    expect(within(rowFor("Worry jar")).getByText("Grounding")).toBeInTheDocument()
+  })
+
+  // M4 — a global mutation must not be double-submitted while it is in flight.
+  it("disables the row actions while a mutation is in flight, and re-enables them after", async () => {
+    const user = userEvent.setup()
+    let settle: (a: SeedActivity) => void = () => {}
+    retireMock.mockImplementation(
+      () =>
+        new Promise<SeedActivity>((resolve) => {
+          settle = resolve
+        }),
+    )
+    render(<SeedActivities />)
+    await screen.findByText("Box breathing")
+
+    expect(screen.getByRole("button", { name: /retire worry jar/i })).toBeEnabled()
+
+    await user.click(screen.getByRole("button", { name: /retire box breathing/i }))
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /retire worry jar/i })).toBeDisabled(),
+    )
+    expect(screen.getByRole("button", { name: /edit box breathing/i })).toBeDisabled()
+
+    settle({ ...BOX, active: false })
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /retire worry jar/i })).toBeEnabled(),
+    )
+  })
+
+  it("keeps the author panel submit disabled until a non-blank title is entered", async () => {
+    const user = userEvent.setup()
+    render(<SeedActivities />)
+    await screen.findByText("Box breathing")
+
+    await user.click(screen.getByRole("button", { name: /author \/ edit/i }))
+    expect(screen.getByRole("button", { name: /add activity/i })).toBeDisabled()
+
+    await user.type(screen.getByLabelText("Activity"), "   ")
+    expect(screen.getByRole("button", { name: /add activity/i })).toBeDisabled()
+
+    await user.type(screen.getByLabelText("Activity"), "Body scan")
+    expect(screen.getByRole("button", { name: /add activity/i })).toBeEnabled()
   })
 
   it("switching the filter to 'Include retired' re-queries with include_retired=true", async () => {
@@ -150,5 +239,47 @@ describe("SeedActivities screen (FR-19-04)", () => {
 
     await user.click(screen.getByRole("button", { name: /retire box breathing/i }))
     expect(await screen.findByRole("alert")).toHaveTextContent(/permission/i)
+  })
+
+  // Major 1 — the list body must never assert something the data does not support.
+  it("never shows an empty state under the error banner", async () => {
+    listMock.mockReset().mockRejectedValue(new Error("request failed: 403"))
+    render(<SeedActivities />)
+    await screen.findByRole("alert")
+
+    expect(screen.getByText("Seed activities could not be loaded")).toBeInTheDocument()
+    expect(screen.queryByText("No seed activities yet")).toBeNull()
+    expect(screen.queryByText("No active seed activities")).toBeNull()
+    expect(screen.queryByText(/add the first one/i)).toBeNull()
+  })
+
+  it("does not claim the seed set is empty after the last active activity is retired", async () => {
+    const user = userEvent.setup()
+    listMock.mockReset().mockResolvedValueOnce([BOX]).mockResolvedValue([])
+    render(<SeedActivities />)
+    await screen.findByText("Box breathing")
+
+    await user.click(screen.getByRole("button", { name: /retire box breathing/i }))
+
+    // retire is a SOFT deactivate — the activity still exists, it is merely filtered out
+    expect(await screen.findByText("No active seed activities")).toBeInTheDocument()
+    expect(screen.queryByText("No seed activities yet")).toBeNull()
+    expect(screen.queryByText(/add the first one/i)).toBeNull()
+
+    // and the empty state offers the way back to the unfiltered view
+    await user.click(screen.getByRole("button", { name: /show retired activities/i }))
+    await waitFor(() => expect(listMock).toHaveBeenCalledWith(true))
+  })
+
+  it("reports a genuinely empty seed set only in the unfiltered view", async () => {
+    const user = userEvent.setup()
+    listMock.mockReset().mockResolvedValue([])
+    render(<SeedActivities />)
+
+    expect(await screen.findByText("No active seed activities")).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: /include retired/i }))
+    expect(await screen.findByText("No seed activities yet")).toBeInTheDocument()
+    expect(screen.queryByText("No active seed activities")).toBeNull()
   })
 })

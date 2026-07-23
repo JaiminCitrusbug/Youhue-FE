@@ -18,7 +18,13 @@
  *      the delta columns (Type, Actions) are appended — the ticket's API carries `type` and the
  *      DoD requires add/edit/remove controls.
  *  (c) The approved right-hand `Author / edit` button is a preview control with no behaviour; here
- *      it is a live toggle for the author panel (no dead controls).
+ *      it is a live toggle for the author panel (no dead controls). The approved copy says
+ *      "Author / edit", so the panel it opens **does both**: a row's `Edit` action opens the same
+ *      panel pre-filled in edit mode (`editingId`), and the panel PATCHes instead of POSTing. The
+ *      approved label is therefore accurate and is NOT renamed.
+ *  (d) The approved `Table` hard-codes `text-left` on every `<th>` and has no per-column alignment
+ *      prop, so the delta `Actions` cells are left-aligned too — header and cells agree. A
+ *      per-column alignment prop is logged for the design owner (DS-01, finding 7).
  */
 import { useCallback, useEffect, useState } from "react"
 
@@ -69,7 +75,7 @@ function draftFrom(a: SeedActivity): SeedActivityInput {
   return { title: a.title, type: a.type, age_band: a.age_band, topic: a.topic ?? "" }
 }
 
-/** The type/age-band option lists, shared by the create and edit forms. */
+/** The type/age-band option lists, shared by the create and edit modes of the author panel. */
 function TypeOptions() {
   return (
     <>
@@ -100,11 +106,11 @@ export function SeedActivities() {
   const [busy, setBusy] = useState(false)
   const [showRetired, setShowRetired] = useState(false)
 
-  const [creating, setCreating] = useState(false)
-  const [newDraft, setNewDraft] = useState<SeedActivityInput>(EMPTY_DRAFT)
-
+  // One author panel serves both modes: `editingId === null` authors a new activity, otherwise it
+  // edits that activity. This is what makes the approved "Author / edit" label true.
+  const [panelOpen, setPanelOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editDraft, setEditDraft] = useState<SeedActivityInput>(EMPTY_DRAFT)
+  const [draft, setDraft] = useState<SeedActivityInput>(EMPTY_DRAFT)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -137,72 +143,33 @@ export function SeedActivities() {
     }
   }
 
-  function submitCreate() {
-    void run(
-      () => createSeedActivity({ ...newDraft, title: newDraft.title.trim(), topic: newDraft.topic.trim() }),
-      () => {
-        setNewDraft(EMPTY_DRAFT)
-        setCreating(false)
-      },
-    )
+  function closePanel() {
+    setPanelOpen(false)
+    setEditingId(null)
+    setDraft(EMPTY_DRAFT)
   }
 
-  function startEdit(a: SeedActivity) {
-    setEditingId(a.id)
-    setEditDraft(draftFrom(a))
+  function openAuthor() {
+    setEditingId(null)
+    setDraft(EMPTY_DRAFT)
+    setPanelOpen(true)
     setError(null)
   }
 
-  function submitEdit(id: string) {
-    void run(
-      () => updateSeedActivity(id, { ...editDraft, title: editDraft.title.trim(), topic: editDraft.topic.trim() }),
-      () => setEditingId(null),
-    )
+  function openEdit(a: SeedActivity) {
+    setEditingId(a.id)
+    setDraft(draftFrom(a))
+    setPanelOpen(true)
+    setError(null)
   }
 
-  const canCreate = newDraft.title.trim().length > 0 && !busy
-  const canSaveEdit = editDraft.title.trim().length > 0 && !busy
+  function submitPanel() {
+    const payload: SeedActivityInput = { ...draft, title: draft.title.trim(), topic: draft.topic.trim() }
+    const id = editingId
+    void run(() => (id === null ? createSeedActivity(payload) : updateSeedActivity(id, payload)), closePanel)
+  }
 
-  const editRow = (a: SeedActivity) => [
-    <Input
-      aria-label="Edit activity title"
-      value={editDraft.title}
-      onChange={(e) => setEditDraft({ ...editDraft, title: e.target.value })}
-    />,
-    <Input
-      aria-label="Edit activity topic"
-      value={editDraft.topic}
-      onChange={(e) => setEditDraft({ ...editDraft, topic: e.target.value })}
-    />,
-    <Select
-      aria-label="Edit activity age band"
-      value={editDraft.age_band}
-      onChange={(e) => setEditDraft({ ...editDraft, age_band: e.target.value as AgeBand })}
-    >
-      <AgeOptions />
-    </Select>,
-    <Select
-      aria-label="Edit activity type"
-      value={editDraft.type}
-      onChange={(e) => setEditDraft({ ...editDraft, type: e.target.value as ActivityType })}
-    >
-      <TypeOptions />
-    </Select>,
-    <div className="flex justify-end gap-2">
-      <Button
-        type="button"
-        variant="ink"
-        icon={<Icon.Check />}
-        disabled={!canSaveEdit}
-        onClick={() => submitEdit(a.id)}
-      >
-        Save
-      </Button>
-      <Button type="button" variant="ghost" icon={<Icon.X />} onClick={() => setEditingId(null)}>
-        Cancel
-      </Button>
-    </div>,
-  ]
+  const canSave = draft.title.trim().length > 0 && !busy
 
   const viewRow = (a: SeedActivity) => [
     <span className="flex items-center gap-2">
@@ -216,14 +183,15 @@ export function SeedActivities() {
     <span className={CELL_TEXT}>{a.topic || "—"}</span>,
     <span className={CELL_TEXT}>{AGE_LABEL[a.age_band]}</span>,
     <span className={CELL_TEXT}>{TYPE_LABEL[a.type]}</span>,
-    <div className="flex justify-end gap-2">
+    // Left-aligned, matching the approved Table's left-aligned <th> — see divergence (d).
+    <div className="flex gap-2">
       <Button
         type="button"
         variant="ghost"
         icon={<Icon.Pencil />}
         disabled={busy}
         aria-label={`Edit ${a.title}`}
-        onClick={() => startEdit(a)}
+        onClick={() => openEdit(a)}
       >
         Edit
       </Button>
@@ -253,6 +221,51 @@ export function SeedActivities() {
     </div>,
   ]
 
+  /**
+   * The list body must never assert something the data does not support:
+   *  - a failed load says so (the red Banner carries the detail) — never "no seed activities yet";
+   *  - with the `Active only` filter on, an empty page means "none ACTIVE", not "none at all"
+   *    (retire is a soft deactivate), so it offers the way back to the unfiltered view;
+   *  - only the unfiltered view (`Include retired`) can claim the seed set is genuinely empty.
+   */
+  function listBody() {
+    if (loading) return <EmptyState title="Loading seed activities…" />
+    if (error)
+      return <EmptyState icon={<Icon.Alert />} title="Seed activities could not be loaded" />
+    if (activities.length > 0)
+      return (
+        <Table
+          head={["Activity", "Topic", "Age", "Type", "Actions"]}
+          rows={activities.map((a) => viewRow(a))}
+        />
+      )
+    if (showRetired)
+      return (
+        <EmptyState icon={<Icon.Book />} title="No seed activities yet">
+          Add the first one — the seed set is available to every school.
+        </EmptyState>
+      )
+    return (
+      <EmptyState
+        icon={<Icon.Book />}
+        title="No active seed activities"
+        action={
+          <Button
+            type="button"
+            variant="ghost"
+            icon={<Icon.Refresh />}
+            onClick={() => setShowRetired(true)}
+          >
+            Show retired activities
+          </Button>
+        }
+      >
+        Retired activities are hidden by this filter. Show them to re-instate one, or author a new
+        activity for every school.
+      </EmptyState>
+    )
+  }
+
   return (
     <>
       <PageHeader
@@ -269,13 +282,10 @@ export function SeedActivities() {
             <Button
               type="button"
               variant="ink"
-              icon={creating ? <Icon.X /> : <Icon.Pencil />}
-              onClick={() => {
-                setCreating((v) => !v)
-                setNewDraft(EMPTY_DRAFT)
-              }}
+              icon={panelOpen ? <Icon.X /> : <Icon.Pencil />}
+              onClick={() => (panelOpen ? closePanel() : openAuthor())}
             >
-              {creating ? "Close" : "Author / edit"}
+              {panelOpen ? "Close" : "Author / edit"}
             </Button>
           </>
         }
@@ -289,32 +299,36 @@ export function SeedActivities() {
         </div>
       ) : null}
 
-      {creating ? (
+      {panelOpen ? (
         <div className="mb-4">
           <Card>
-            <CardHeader icon={<Icon.Plus />} title="New seed activity" hint="added to every school" />
+            <CardHeader
+              icon={editingId === null ? <Icon.Plus /> : <Icon.Pencil />}
+              title={editingId === null ? "New seed activity" : "Edit seed activity"}
+              hint={editingId === null ? "added to every school" : "applies to every school"}
+            />
             <CardBody>
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
-                  submitCreate()
+                  submitPanel()
                 }}
               >
                 <Field label="Activity">
                   <Input
                     aria-label="Activity"
-                    value={newDraft.title}
+                    value={draft.title}
                     autoFocus
                     placeholder="e.g. Box breathing"
-                    onChange={(e) => setNewDraft({ ...newDraft, title: e.target.value })}
+                    onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Type">
                     <Select
                       aria-label="Type"
-                      value={newDraft.type}
-                      onChange={(e) => setNewDraft({ ...newDraft, type: e.target.value as ActivityType })}
+                      value={draft.type}
+                      onChange={(e) => setDraft({ ...draft, type: e.target.value as ActivityType })}
                     >
                       <TypeOptions />
                     </Select>
@@ -322,8 +336,8 @@ export function SeedActivities() {
                   <Field label="Age band">
                     <Select
                       aria-label="Age band"
-                      value={newDraft.age_band}
-                      onChange={(e) => setNewDraft({ ...newDraft, age_band: e.target.value as AgeBand })}
+                      value={draft.age_band}
+                      onChange={(e) => setDraft({ ...draft, age_band: e.target.value as AgeBand })}
                     >
                       <AgeOptions />
                     </Select>
@@ -332,14 +346,20 @@ export function SeedActivities() {
                 <Field label="Topic">
                   <Input
                     aria-label="Topic"
-                    value={newDraft.topic}
+                    value={draft.topic}
                     placeholder="e.g. Healthy habits"
-                    onChange={(e) => setNewDraft({ ...newDraft, topic: e.target.value })}
+                    onChange={(e) => setDraft({ ...draft, topic: e.target.value })}
                   />
                 </Field>
                 <div className="mt-4 flex gap-2.5">
-                  <Button type="submit" variant="ink" icon={<Icon.Check />} disabled={!canCreate}>
-                    {busy ? "Adding…" : "Add activity"}
+                  <Button type="submit" variant="ink" icon={<Icon.Check />} disabled={!canSave}>
+                    {editingId === null
+                      ? busy
+                        ? "Adding…"
+                        : "Add activity"
+                      : busy
+                        ? "Saving…"
+                        : "Save changes"}
                   </Button>
                 </div>
               </form>
@@ -350,20 +370,7 @@ export function SeedActivities() {
 
       <Card>
         <CardHeader icon={<Icon.Book />} title="Seed activities" hint="age band = suitable years" />
-        <CardBody flush>
-          {loading ? (
-            <EmptyState title="Loading seed activities…" />
-          ) : activities.length === 0 ? (
-            <EmptyState icon={<Icon.Book />} title="No seed activities yet">
-              Add the first one — the seed set is available to every school.
-            </EmptyState>
-          ) : (
-            <Table
-              head={["Activity", "Topic", "Age", "Type", "Actions"]}
-              rows={activities.map((a) => (editingId === a.id ? editRow(a) : viewRow(a)))}
-            />
-          )}
-        </CardBody>
+        <CardBody flush>{listBody()}</CardBody>
       </Card>
     </>
   )
