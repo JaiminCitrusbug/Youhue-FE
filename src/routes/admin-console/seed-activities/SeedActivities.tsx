@@ -223,15 +223,16 @@ export function SeedActivities() {
 
   /**
    * The list body must never assert something the data does not support:
-   *  - a failed load says so (the red Banner carries the detail) — never "no seed activities yet";
+   *  - if rows are on screen they STAY on screen — a failed *mutation* (retire/edit/create) sets
+   *    `error`, which the red Banner above already carries; it must not throw away the loaded list
+   *    and claim "could not be loaded" (that would be the very false-statement class this guards);
+   *  - "could not be loaded" is only for a failed *load* — error with no rows to show;
    *  - with the `Active only` filter on, an empty page means "none ACTIVE", not "none at all"
    *    (retire is a soft deactivate), so it offers the way back to the unfiltered view;
    *  - only the unfiltered view (`Include retired`) can claim the seed set is genuinely empty.
    */
   function listBody() {
     if (loading) return <EmptyState title="Loading seed activities…" />
-    if (error)
-      return <EmptyState icon={<Icon.Alert />} title="Seed activities could not be loaded" />
     if (activities.length > 0)
       return (
         <Table
@@ -239,6 +240,8 @@ export function SeedActivities() {
           rows={activities.map((a) => viewRow(a))}
         />
       )
+    if (error)
+      return <EmptyState icon={<Icon.Alert />} title="Seed activities could not be loaded" />
     if (showRetired)
       return (
         <EmptyState icon={<Icon.Book />} title="No seed activities yet">

@@ -241,6 +241,24 @@ describe("SeedActivities screen (FR-19-04)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(/permission/i)
   })
 
+  // RM-1 — a failed *mutation* sets `error` but the loaded list is still in state; the table must
+  // STAY visible under the banner. The bug was `listBody()` checking error before rows, which threw
+  // away an on-screen list and falsely claimed "could not be loaded". Rows-before-error fixes it.
+  it("keeps the loaded list on screen when a mutation fails (never 'could not be loaded')", async () => {
+    const user = userEvent.setup()
+    retireMock.mockRejectedValue(new Error("request failed: 500"))
+    render(<SeedActivities />)
+    await screen.findByText("Box breathing")
+
+    await user.click(screen.getByRole("button", { name: /retire box breathing/i }))
+    expect(await screen.findByRole("alert")).toBeInTheDocument()
+
+    // the list the admin was looking at is still there, under the error banner
+    expect(screen.getByText("Box breathing")).toBeInTheDocument()
+    expect(screen.getByText("Worry jar")).toBeInTheDocument()
+    expect(screen.queryByText("Seed activities could not be loaded")).toBeNull()
+  })
+
   // Major 1 — the list body must never assert something the data does not support.
   it("never shows an empty state under the error banner", async () => {
     listMock.mockReset().mockRejectedValue(new Error("request failed: 403"))
