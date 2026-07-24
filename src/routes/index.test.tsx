@@ -18,6 +18,15 @@ vi.mock("./admin-word-lists/api", () => ({
   saveDefaultConcernWords: vi.fn(),
 }))
 
+// The district approvals queue (SchoolApprovalsApp) GETs the pending queue on mount (FR-02-02).
+// Same reasoning as above: stub a deterministic empty queue so the router test's on-mount fetch
+// settles before assertions run.
+vi.mock("./district-approvals/api", () => ({
+  getPendingSchools: vi.fn(async () => ({ schools: [] })),
+  getSchoolDetail: vi.fn(),
+  decideSchool: vi.fn(),
+}))
+
 function renderAt(path: string) {
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -81,13 +90,15 @@ describe("AppRoutes (role-aware router)", () => {
   it("denies a wrong-role staff the district admin route", () => {
     state.user = { subject_id: "1", kind: "staff", role: "teacher", school_id: "s" }
     renderAt("/app/district")
-    expect(screen.queryByRole("heading", { name: /district admin/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: /school approvals/i })).not.toBeInTheDocument()
   })
 
-  it("permits the matching staff role its own route", () => {
+  it("permits the matching staff role its own route", async () => {
     state.user = { subject_id: "1", kind: "staff", role: "district", school_id: "s" }
     renderAt("/app/district")
-    expect(screen.getByRole("heading", { name: /district admin/i })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: /school approvals/i })).toBeInTheDocument()
+    // let the on-mount pending-queue read settle (stubbed empty), wrapped in act
+    expect(await screen.findByText(/no schools waiting/i)).toBeInTheDocument()
   })
 
   it("resolves the admin console for an admin-kind session (FR-19-05 · SC-079 default word lists)", async () => {

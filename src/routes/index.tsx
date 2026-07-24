@@ -14,6 +14,7 @@ import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { AdminSignInApp } from "./admin-signin"
 import { DefaultWordListsApp } from "./admin-word-lists"
+import { ApprovalDecisionApp, SchoolApprovalsApp } from "./district-approvals"
 import { LeadershipConsentApp } from "./leadership-consent"
 import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
@@ -96,11 +97,21 @@ export function AppRoutes() {
             </RequireRole>
           }
         />
+        {/* FR-02-02 — District/Trust leadership reviews + approves/rejects a pending school
+            (SC-069 queue, SC-070 single-school decide). Replaces the bare placeholder. */}
         <Route
           path="district"
           element={
             <RequireRole allow={ROLE_ROUTES.district}>
-              <Placeholder title="District admin" />
+              <SchoolApprovalsApp />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="district/:schoolId"
+          element={
+            <RequireRole allow={ROLE_ROUTES.district}>
+              <ApprovalDecisionApp />
             </RequireRole>
           }
         />
