@@ -129,7 +129,7 @@ describe("ApprovalDecisionScreen (FR-02-02 · SC-070)", () => {
     expect(screen.getByRole("button", { name: /^reject$/i })).toBeDisabled()
   })
 
-  it("shows a placeholder, not a fabricated email, when the registrant is unknown", async () => {
+  it("shows a neutral fallback, not a fabricated email, when the registrant is unknown", async () => {
     api.getSchoolDetail.mockResolvedValue(detail({ registrant_email: null }))
     renderScreen()
     expect(await screen.findByText("Unknown")).toBeInTheDocument()
