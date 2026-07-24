@@ -25,7 +25,8 @@ import { QRScreen } from "./QRScreen"
 //
 // The two entry credentials are mutually exclusive: a QR arrives as a deep-link `?qr=<token>`
 // (the teacher's QR encodes it; the device camera app opens the link), otherwise the student
-// types a code. On success the student lands on their daily check-in (FR-04-01, placeholder here).
+// types a code. On success the student lands on their daily check-in (FR-04-01's real screen,
+// `routes/checkin`).
 
 const CODE_PATH = "/student/sign-in"
 const SCAN_PATH = "/student/sign-in/scan"

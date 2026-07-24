@@ -11,6 +11,7 @@ import {
 } from "../components/layout/system"
 import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
+import { CheckInApp } from "./checkin"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { SchoolAccounts } from "./admin-console/schools/SchoolAccounts"
 import { SchoolSupport } from "./admin-console/schools/SchoolSupport"
@@ -229,6 +230,9 @@ export function AppRoutes() {
           }
         />
       </Route>
+      {/* FR-04-01 — SC-023 daily check-in: mood select (index) then a SEPARATE reflection step
+          (`/student/reflection`), owned by its own container so the two steps share state the
+          same way `student-signin/index.tsx` does for its own multi-step flow. */}
       <Route
         path="/student"
         element={
@@ -237,7 +241,7 @@ export function AppRoutes() {
           </RequireStudent>
         }
       >
-        <Route index element={<Placeholder title="Daily check-in" />} />
+        <Route path="*" element={<CheckInApp />} />
       </Route>
       <Route path="/terms" element={<Terms />} />
       {/* FR-20-06 — SC-009 Privacy · SC-010 COPPA/FERPA: static legal pages, no state/API (same
