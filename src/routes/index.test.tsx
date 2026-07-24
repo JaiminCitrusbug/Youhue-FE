@@ -27,6 +27,19 @@ vi.mock("./district-approvals/api", () => ({
   decideSchool: vi.fn(),
 }))
 
+// FR-19-02 — the school-admin screens GET on mount too; stub deterministically for the same reason.
+vi.mock("./admin-console/schools/api", () => ({
+  listSchools: vi.fn(async () => ({ schools: [], count: 0 })),
+  getSchool: vi.fn(async () => ({
+    id: "s1", name: "Oakfield Primary", tier: "free", status: "active", timezone: "UTC",
+    subscription_state: null, trial_end_at: null, trial_extension_count: 0,
+  })),
+  extendTrial: vi.fn(),
+  updateAccount: vi.fn(),
+  openSupportAccess: vi.fn(),
+  adminSchoolErrorMessage: (err: unknown) => (err instanceof Error ? err.message : "error"),
+}))
+
 function renderAt(path: string) {
   render(
     <MemoryRouter initialEntries={[path]}>
@@ -110,6 +123,34 @@ describe("AppRoutes (role-aware router)", () => {
     ).toBeInTheDocument()
     // let the on-mount default-list read settle (empty), so its state update is wrapped in act
     expect(await screen.findByText(/no default words yet/i)).toBeInTheDocument()
+  })
+
+  // FR-19-02 — the admin console gains three sibling screens: school accounts, trial extension,
+  // and support access, all behind the same admin guard.
+  it("resolves the school-accounts console route for an admin-kind session (FR-19-02 · SC-075)", async () => {
+    state.user = { subject_id: "1", kind: "admin", role: null, school_id: null }
+    renderAt("/app/admin/schools")
+    expect(screen.getByRole("heading", { name: /school accounts/i })).toBeInTheDocument()
+    expect(await screen.findByText(/no schools match your search/i)).toBeInTheDocument()
+  })
+
+  it("resolves the per-school trial route for an admin-kind session (FR-19-02 · SC-076)", async () => {
+    state.user = { subject_id: "1", kind: "admin", role: null, school_id: null }
+    renderAt("/app/admin/schools/s1/trial")
+    expect(await screen.findByText(/oakfield primary — trial/i)).toBeInTheDocument()
+  })
+
+  it("resolves the per-school support route for an admin-kind session (FR-19-02 · SC-077)", async () => {
+    state.user = { subject_id: "1", kind: "admin", role: null, school_id: null }
+    renderAt("/app/admin/schools/s1/support")
+    expect(await screen.findByText(/open oakfield primary for support/i)).toBeInTheDocument()
+  })
+
+  it("denies a wrong-role staff the school-accounts console route", () => {
+    state.user = { subject_id: "1", kind: "staff", role: "teacher", school_id: "s" }
+    renderAt("/app/admin/schools")
+    expect(screen.queryByRole("heading", { name: /school accounts/i })).not.toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: /class dashboard/i })).toBeInTheDocument()
   })
 
   it("shows a loading state while the session is still resolving", () => {

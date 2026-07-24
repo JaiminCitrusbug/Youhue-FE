@@ -12,6 +12,9 @@ import {
 import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
+import { SchoolAccounts } from "./admin-console/schools/SchoolAccounts"
+import { SchoolSupport } from "./admin-console/schools/SchoolSupport"
+import { SchoolTrial } from "./admin-console/schools/SchoolTrial"
 import { AdminSignInApp } from "./admin-signin"
 import { DefaultWordListsApp } from "./admin-word-lists"
 import { ApprovalDecisionApp, SchoolApprovalsApp } from "./district-approvals"
@@ -132,6 +135,33 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.admin}>
               <SeedActivities />
+            </RequireRole>
+          }
+        />
+        {/* FR-19-02 — admin console: school accounts (SC-075), the one-time 14-day trial extension
+            (SC-076), and permission-bound audited support access (SC-077). Same RequireRole gate;
+            the BE additionally enforces `manage_accounts` / `access_child_data` RBAC per action. */}
+        <Route
+          path="admin/schools"
+          element={
+            <RequireRole allow={ROLE_ROUTES.admin}>
+              <SchoolAccounts />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/schools/:schoolId/trial"
+          element={
+            <RequireRole allow={ROLE_ROUTES.admin}>
+              <SchoolTrial />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/schools/:schoolId/support"
+          element={
+            <RequireRole allow={ROLE_ROUTES.admin}>
+              <SchoolSupport />
             </RequireRole>
           }
         />
