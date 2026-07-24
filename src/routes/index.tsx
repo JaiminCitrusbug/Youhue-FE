@@ -23,6 +23,7 @@ import { AccessWindow } from "./leadership/AccessWindow"
 import { AlertRouting } from "./leadership/AlertRouting"
 import { ConcernWords } from "./leadership/ConcernWords"
 import { StaffManagement } from "./leadership/StaffManagement"
+import { RosterImportApp } from "./roster-import"
 import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
 
@@ -82,6 +83,16 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.dashboard}>
               <Placeholder title="Class dashboard" />
+            </RequireRole>
+          }
+        />
+        {/* FR-03-01 — SC-036 CSV roster import. Same RequireRole gate as `dashboard` (teacher /
+            support own a class roster); the BE additionally re-checks role AND same-school. */}
+        <Route
+          path="roster/import"
+          element={
+            <RequireRole allow={ROLE_ROUTES.dashboard}>
+              <RosterImportApp />
             </RequireRole>
           }
         />
