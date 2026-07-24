@@ -11,7 +11,7 @@
  *  (a) No `<AppShell {...chrome('admin', 'Support')}>` wrapper (same reasoning as SchoolAccounts.tsx).
  *  (b) The approved Textarea ships a fixed `defaultValue` (a fixture example reason). Reusing that
  *      verbatim would submit a fake, unedited reason as if it were real audit content — so this
- *      screen uses the SAME copy as a `placeholder` instead, and requires the admin to actually
+ *      screen uses the SAME copy as an input hint instead, and requires the admin to actually
  *      type a reason (matches the BE's non-blank validation, 422 otherwise).
  */
 import { useCallback, useEffect, useState } from "react"
@@ -26,7 +26,7 @@ import { adminSchoolErrorMessage, getSchool, openSupportAccess, type SchoolDetai
 // Source: design/approved/screens/SupportAccess.tsx:15
 const CONTENT_COL_CLS = "max-w-[640px]" // token-ok: approved value (do-not-restyle)
 
-// The approved screen's example reason text, kept as a placeholder (see divergence (b)) rather than
+// The approved screen's example reason text, kept as an input hint (see divergence (b)) rather than
 // a submittable default value. Written as "ticket 4821" (no leading #) so it is not mistaken for a
 // hex colour literal by the token-drift scanner.
 const REASON_PLACEHOLDER =
