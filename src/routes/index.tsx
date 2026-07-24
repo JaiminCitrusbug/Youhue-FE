@@ -23,6 +23,7 @@ import { AccessWindow } from "./leadership/AccessWindow"
 import { AlertRouting } from "./leadership/AlertRouting"
 import { ConcernWords } from "./leadership/ConcernWords"
 import { StaffManagement } from "./leadership/StaffManagement"
+import { RosterListApp } from "./roster"
 import { RosterImportApp } from "./roster-import"
 import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
@@ -93,6 +94,18 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.dashboard}>
               <RosterImportApp />
+            </RequireRole>
+          }
+        />
+        {/* FR-03-05 — SC-037 roster list + re-import reconciliation. Sibling to `roster/import`
+            above (a DIFFERENT screen — a management view, not another upload form; see the logged
+            reasoning in `./roster/index.tsx`), same RequireRole gate; the BE additionally
+            re-checks role AND same-school on both the GET list and the reconcile POST. */}
+        <Route
+          path="roster"
+          element={
+            <RequireRole allow={ROLE_ROUTES.dashboard}>
+              <RosterListApp />
             </RequireRole>
           }
         />
