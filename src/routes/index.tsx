@@ -19,6 +19,10 @@ import { AdminSignInApp } from "./admin-signin"
 import { DefaultWordListsApp } from "./admin-word-lists"
 import { ApprovalDecisionApp, SchoolApprovalsApp } from "./district-approvals"
 import { LeadershipConsentApp } from "./leadership-consent"
+import { AccessWindow } from "./leadership/AccessWindow"
+import { AlertRouting } from "./leadership/AlertRouting"
+import { ConcernWords } from "./leadership/ConcernWords"
+import { StaffManagement } from "./leadership/StaffManagement"
 import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
 
@@ -81,11 +85,46 @@ export function AppRoutes() {
             </RequireRole>
           }
         />
+        {/* FR-16-02 — the leadership hub: staff management (SC-057) is the landing screen (mirrors
+            the district/admin pattern: the role's home route IS its first real, fully-wired
+            screen), plus sibling routes for the leadership-exposed settings surfaces. */}
         <Route
           path="leadership"
           element={
             <RequireRole allow={ROLE_ROUTES.leadership}>
-              <Placeholder title="Leadership overview" />
+              <StaffManagement />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="leadership/staff"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <StaffManagement />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="leadership/settings/concern-words"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <ConcernWords />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="leadership/settings/alert-routing"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <AlertRouting />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="leadership/settings/access-window"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <AccessWindow />
             </RequireRole>
           }
         />

@@ -7,7 +7,13 @@ import { effectiveRole } from "../../lib/roles"
 const NAV_BY_ROLE: Record<string, { label: string; to: string }[]> = {
   teacher: [{ label: "Class dashboard", to: "/app/dashboard" }],
   support: [{ label: "Shared class", to: "/app/dashboard" }],
-  leadership: [{ label: "Leadership overview", to: "/app/leadership" }],
+  leadership: [
+    { label: "Leadership overview", to: "/app/leadership" },
+    { label: "Staff", to: "/app/leadership/staff" },
+    { label: "Concern words", to: "/app/leadership/settings/concern-words" },
+    { label: "Alert routing", to: "/app/leadership/settings/alert-routing" },
+    { label: "Access window", to: "/app/leadership/settings/access-window" },
+  ],
   district: [{ label: "District admin", to: "/app/district" }],
   admin: [
     { label: "Admin console", to: "/app/admin" },
