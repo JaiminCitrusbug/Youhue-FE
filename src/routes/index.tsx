@@ -6,12 +6,15 @@ import { useAuth } from "../app/AuthContext"
 import { AppShell } from "../components/layout/AppShell"
 import { RequireRole, RequireStaff, RequireStudent } from "../components/layout/guards"
 import { StudentShell } from "../components/layout/StudentShell"
-import { Maintenance, NotFound404, ServerError500, Terms } from "../components/layout/system"
+import {
+  CoppaFerpa, Maintenance, NotFound404, PrivacyPolicy, ServerError500, Terms,
+} from "../components/layout/system"
 import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { AdminSignInApp } from "./admin-signin"
 import { DefaultWordListsApp } from "./admin-word-lists"
+import { LeadershipConsentApp } from "./leadership-consent"
 import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
 
@@ -82,6 +85,17 @@ export function AppRoutes() {
             </RequireRole>
           }
         />
+        {/* FR-20-06 — SC-088 parental-consent attestation (COPPA), school-mediated: leadership
+            confirms consent on the parent's behalf. The same RequireRole gate as `leadership`
+            above; the BE also re-checks the `leadership` role and school scope (403 otherwise). */}
+        <Route
+          path="leadership/consent"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <LeadershipConsentApp />
+            </RequireRole>
+          }
+        />
         <Route
           path="district"
           element={
@@ -122,6 +136,10 @@ export function AppRoutes() {
         <Route index element={<Placeholder title="Daily check-in" />} />
       </Route>
       <Route path="/terms" element={<Terms />} />
+      {/* FR-20-06 — SC-009 Privacy · SC-010 COPPA/FERPA: static legal pages, no state/API (same
+          pattern as /terms above). */}
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/coppa-ferpa" element={<CoppaFerpa />} />
       <Route path="/maintenance" element={<Maintenance />} />
       <Route path="/500" element={<ServerError500 />} />
       <Route path="*" element={<NotFound404 />} />
