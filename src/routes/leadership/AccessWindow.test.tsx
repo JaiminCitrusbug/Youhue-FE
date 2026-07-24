@@ -31,7 +31,18 @@ const EMPTY_SETTINGS: SchoolSettings = {
 
 const SAVED_SETTINGS: SchoolSettings = {
   ...EMPTY_SETTINGS,
-  access_window: { window_start: "08:30:00", window_end: "09:30:00", timezone: "Europe/London" },
+  access_window: {
+    window_start: "08:30:00", window_end: "09:30:00", timezone: "Europe/London",
+    term_start: null, term_end: null,
+  },
+}
+
+const SAVED_WITH_TERM: SchoolSettings = {
+  ...EMPTY_SETTINGS,
+  access_window: {
+    window_start: "08:30:00", window_end: "09:30:00", timezone: "Europe/London",
+    term_start: "2026-09-01", term_end: "2026-12-18",
+  },
 }
 
 describe("AccessWindow screen (FR-16-02 · SC-063)", () => {
@@ -53,6 +64,13 @@ describe("AccessWindow screen (FR-16-02 · SC-063)", () => {
     expect(screen.getByLabelText("Timezone")).toHaveValue("Europe/London")
   })
 
+  it("loads saved term dates when they exist", async () => {
+    getMock.mockResolvedValue({ settings: SAVED_WITH_TERM })
+    render(<AccessWindow />)
+    expect(await screen.findByLabelText("Term starts")).toHaveValue("2026-09-01")
+    expect(screen.getByLabelText("Term ends")).toHaveValue("2026-12-18")
+  })
+
   it("editing and saving calls the real PATCH with the entered values", async () => {
     updateMock.mockResolvedValue({ settings: SAVED_SETTINGS })
     const user = userEvent.setup()
@@ -66,7 +84,36 @@ describe("AccessWindow screen (FR-16-02 · SC-063)", () => {
 
     await waitFor(() => expect(updateMock).toHaveBeenCalledWith("sch1", {
       window_start: "08:30", window_end: "09:30", timezone: "Europe/London",
+      term_start: null, term_end: null,
     }))
+  })
+
+  it("saving with both term dates entered sends them to the real PATCH", async () => {
+    updateMock.mockResolvedValue({ settings: SAVED_WITH_TERM })
+    const user = userEvent.setup()
+    render(<AccessWindow />)
+    await screen.findByLabelText("Opens")
+
+    await user.type(screen.getByLabelText("Term starts"), "2026-09-01")
+    await user.type(screen.getByLabelText("Term ends"), "2026-12-18")
+    await user.click(screen.getByRole("button", { name: /^save$/i }))
+
+    await waitFor(() => expect(updateMock).toHaveBeenCalledWith("sch1", {
+      window_start: "08:30", window_end: "09:30", timezone: "UTC",
+      term_start: "2026-09-01", term_end: "2026-12-18",
+    }))
+  })
+
+  it("blocks saving one-sided term dates without calling the API", async () => {
+    const user = userEvent.setup()
+    render(<AccessWindow />)
+    await screen.findByLabelText("Opens")
+
+    await user.type(screen.getByLabelText("Term starts"), "2026-09-01")
+    await user.click(screen.getByRole("button", { name: /^save$/i }))
+
+    expect(await screen.findByText(/enter both term dates/i)).toBeInTheDocument()
+    expect(updateMock).not.toHaveBeenCalled()
   })
 
   it("disables Save while the request is in flight (real disabled state)", async () => {

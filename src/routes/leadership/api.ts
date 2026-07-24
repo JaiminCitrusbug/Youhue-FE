@@ -38,6 +38,12 @@ export interface AccessWindowSettings {
   window_start: string
   window_end: string
   timezone: string
+  // FR-07-04: the minimal term-dates surface added to this SAME setting (FR-16-02 covered only
+  // window/timezone). Null until leadership has ever saved a term. Omitting/nulling BOTH on a
+  // save leaves any previously-saved term dates untouched — the BE never silently erases them
+  // from a save that was only about the window/timezone (see `application/leadership/services.py`).
+  term_start: string | null
+  term_end: string | null
 }
 
 export interface SchoolSettings {

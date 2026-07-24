@@ -109,15 +109,24 @@ describe("leadership hub client (FR-16-02)", () => {
         settings: {
           concern_words: { platform_defaults: [], school_additions: [] },
           alert_routing: [],
-          access_window: { window_start: "08:30:00", window_end: "09:30:00", timezone: "UTC" },
+          access_window: {
+            window_start: "08:30:00", window_end: "09:30:00", timezone: "UTC",
+            term_start: null, term_end: null,
+          },
         },
       }),
     )
     vi.stubGlobal("fetch", fetchMock)
-    await updateAccessWindow("sch1", { window_start: "08:30", window_end: "09:30", timezone: "UTC" })
+    await updateAccessWindow("sch1", {
+      window_start: "08:30", window_end: "09:30", timezone: "UTC",
+      term_start: null, term_end: null,
+    })
     const [, init] = lastCall(fetchMock)
     expect(JSON.parse(init.body as string)).toEqual({
-      access_window: { window_start: "08:30", window_end: "09:30", timezone: "UTC" },
+      access_window: {
+        window_start: "08:30", window_end: "09:30", timezone: "UTC",
+        term_start: null, term_end: null,
+      },
     })
   })
 

@@ -17,6 +17,13 @@
  *  (c) "Opens"/"Closes" use native `<input type="time">` (still the shared `Input` primitive,
  *      just with `type="time"`) instead of a plain text default value, for a real, constrained
  *      time picker rather than free text that could 422 on save for a typo.
+ *  (d) FR-07-04 adds a "Term dates" field pair to this SAME card — the approved screen predates
+ *      FR-07-04 and has no term-dates fields at all. `CalendarConfig` had no notion of term
+ *      dates until this ticket (FR-16-02 stored window/timezone only); 'this term' resolution
+ *      needs somewhere for leadership to set them, and the ticket says extend this existing
+ *      screen rather than build a parallel one. Native `<input type="date">` (same `Input`
+ *      primitive, same reasoning as (c)); both fields are optional and paired — leaving both
+ *      blank leaves any previously-saved term dates untouched.
  */
 import { useCallback, useEffect, useState } from "react"
 
@@ -55,6 +62,8 @@ export function AccessWindow() {
   const [windowStart, setWindowStart] = useState(DEFAULT_START)
   const [windowEnd, setWindowEnd] = useState(DEFAULT_END)
   const [timezone, setTimezone] = useState(DEFAULT_TZ)
+  const [termStart, setTermStart] = useState("")
+  const [termEnd, setTermEnd] = useState("")
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -69,6 +78,8 @@ export function AccessWindow() {
         setWindowStart(w?.window_start.slice(0, 5) ?? DEFAULT_START)
         setWindowEnd(w?.window_end.slice(0, 5) ?? DEFAULT_END)
         setTimezone(w?.timezone ?? DEFAULT_TZ)
+        setTermStart(w?.term_start ?? "")
+        setTermEnd(w?.term_end ?? "")
         setLoading(false)
       })
       .catch((e: unknown) => {
@@ -83,9 +94,21 @@ export function AccessWindow() {
 
   function save() {
     if (!schoolId) return
+    // FR-07-04: term dates are optional but paired (mirrors the BE's own rule) — one filled and
+    // the other blank is caught here rather than round-tripping to a 422.
+    if (Boolean(termStart) !== Boolean(termEnd)) {
+      setSaveError("Enter both term dates, or leave both blank.")
+      return
+    }
     setSaving(true)
     setSaveError(null)
-    updateAccessWindow(schoolId, { window_start: windowStart, window_end: windowEnd, timezone })
+    updateAccessWindow(schoolId, {
+      window_start: windowStart,
+      window_end: windowEnd,
+      timezone,
+      term_start: termStart || null,
+      term_end: termEnd || null,
+    })
       .then((res) => {
         setSettings(res.settings)
         setSaving(false)
@@ -132,8 +155,27 @@ export function AccessWindow() {
             {TIMEZONES.map((tz) => <option key={tz} value={tz}>{tz}</option>)}
           </Select>
         </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Term starts">
+            <Input
+              type="date"
+              aria-label="Term starts"
+              value={termStart}
+              onChange={(e) => setTermStart(e.target.value)}
+            />
+          </Field>
+          <Field label="Term ends">
+            <Input
+              type="date"
+              aria-label="Term ends"
+              value={termEnd}
+              onChange={(e) => setTermEnd(e.target.value)}
+            />
+          </Field>
+        </div>
         <Banner icon={<Icon.Check />}>
-          Enforced server-side — check-ins outside the window are blocked.
+          Enforced server-side — check-ins outside the window are blocked. Term dates set what
+          &quot;this term&quot; covers on dashboard figures.
         </Banner>
         {saveError && <Banner tone="danger" icon={<Icon.Alert />}>{saveError}</Banner>}
         <div className="flex gap-2.5">
