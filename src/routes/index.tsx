@@ -30,6 +30,7 @@ import { RosterListApp } from "./roster"
 import { RosterImportApp } from "./roster-import"
 import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
+import { MyHistoryApp } from "./student-history"
 
 function Placeholder({ title }: { title: string }) {
   return <h1 className="text-2xl font-bold text-ink">{title}</h1>
@@ -259,6 +260,9 @@ export function AppRoutes() {
           </RequireStudent>
         }
       >
+        {/* FR-08-01 · SC-025 — the caller's own moods-over-time + reflections; must be declared
+            BEFORE the `*` catch-all below or CheckInApp's own nested `*` route would swallow it. */}
+        <Route path="history" element={<MyHistoryApp />} />
         <Route path="*" element={<CheckInApp />} />
       </Route>
       <Route path="/terms" element={<Terms />} />
