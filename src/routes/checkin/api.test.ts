@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { setToken } from "../../api/client"
-import { CheckInApiError, getMoodSet, submitCheckIn } from "./api"
+import { CheckInApiError, getCheckInConfig, submitCheckIn } from "./api"
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -10,23 +10,27 @@ function jsonResponse(status: number, body: unknown): Response {
   })
 }
 
-describe("check-in client (FR-04-01)", () => {
+describe("check-in client (FR-04-01 + FR-04-03)", () => {
   beforeEach(() => setToken("student-tok"))
   afterEach(() => vi.unstubAllGlobals())
 
-  it("getMoodSet attaches the bearer and returns the values array", async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(200, { values: [1, 3, 5] }))
+  it("getCheckInConfig attaches the bearer and returns mode/mood_set/read_aloud", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(200, { mode: "simple", mood_set: [1, 3, 5], read_aloud: true }),
+    )
     vi.stubGlobal("fetch", fetchMock)
 
-    const res = await getMoodSet()
+    const res = await getCheckInConfig()
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/v1/check-ins/mood-set",
+      "/api/v1/check-ins/config",
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: "Bearer student-tok" }),
       }),
     )
-    expect(res.values).toEqual([1, 3, 5])
+    expect(res.mode).toBe("simple")
+    expect(res.mood_set).toEqual([1, 3, 5])
+    expect(res.read_aloud).toBe(true)
   })
 
   it("submitCheckIn posts mood_value and omits reflection_text when blank", async () => {

@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom"
 
 import { Banner, Icon, MoodFace } from "@design/components"
 
-import { CheckInApiError, getMoodSet, submitCheckIn } from "./api"
+import { CheckInApiError, getCheckInConfig, submitCheckIn } from "./api"
 import { MoodScreen } from "./MoodScreen"
 import { moodEntryForValue } from "./moods"
 import { ReflectionScreen } from "./ReflectionScreen"
@@ -26,6 +26,7 @@ export function CheckInApp() {
   const navigate = useNavigate()
 
   const [moodValues, setMoodValues] = useState<number[]>([])
+  const [readAloud, setReadAloud] = useState(false)
   const [loadingMoodSet, setLoadingMoodSet] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -38,10 +39,11 @@ export function CheckInApp() {
 
   useEffect(() => {
     let cancelled = false
-    getMoodSet()
+    getCheckInConfig()
       .then((res) => {
         if (cancelled) return
-        setMoodValues(res.values)
+        setMoodValues(res.mood_set)
+        setReadAloud(res.read_aloud)
         setLoadingMoodSet(false)
       })
       .catch((e: unknown) => {
@@ -101,6 +103,7 @@ export function CheckInApp() {
             loading={loadingMoodSet}
             error={loadError}
             allowedValues={moodValues}
+            readAloud={readAloud}
             selected={selectedMood}
             onSelect={setSelectedMood}
             onContinue={() => navigate(REFLECTION_PATH)}

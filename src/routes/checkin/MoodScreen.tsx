@@ -32,19 +32,36 @@ const FOOTNOTE_CLS = "mb-3 flex items-center gap-2 text-[11.5px] text-neutral-50
 const CONTINUE_BTN_CLS = "flex flex-1 items-center justify-center gap-2 rounded-[14px] bg-coral py-3.5 text-[15px] font-bold text-white hover:bg-coral-600 disabled:cursor-not-allowed disabled:opacity-50" // token-ok: approved Design-final-v3 value (do-not-restyle)
 const ARROW_ICON_CLS = "h-[18px] w-[18px]" // token-ok: approved Design-final-v3 value (do-not-restyle)
 
+// FR-04-03 — read-aloud (simplified-mode students, ticket §Interaction contract: "Read-aloud is
+// part of the simplified mode"). No `@design/components` audio primitive exists for this, and
+// none is needed: `window.speechSynthesis` is a plain browser API, not a visual element, so it
+// carries no design/token surface to reuse or restyle. Silently a no-op where unsupported (older
+// WebViews) — never a crash, matching this codebase's "never leak an unhandled error" posture.
+function speak(text: string) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return
+  window.speechSynthesis.cancel()
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance(text))
+}
+
 export interface MoodScreenProps {
   loading: boolean
   error: string | null
   allowedValues: number[]
+  readAloud: boolean
   selected: number | null
   onSelect: (value: number) => void
   onContinue: () => void
 }
 
 export function MoodScreen({
-  loading, error, allowedValues, selected, onSelect, onContinue,
+  loading, error, allowedValues, readAloud, selected, onSelect, onContinue,
 }: MoodScreenProps) {
   const options = MOOD_ORDER.filter((m) => allowedValues.includes(m.value))
+
+  function handleSelect(value: number, label: string) {
+    onSelect(value)
+    if (readAloud) speak(label)
+  }
 
   return (
     <div className="flex min-h-[70vh] flex-col">
@@ -71,7 +88,7 @@ export function MoodScreen({
               <button
                 key={mood}
                 type="button"
-                onClick={() => onSelect(value)}
+                onClick={() => handleSelect(value, label)}
                 aria-pressed={on}
                 className={on ? CARD_ON_CLS : CARD_OFF_CLS}
               >
@@ -85,10 +102,12 @@ export function MoodScreen({
         </div>
       )}
 
-      <div className={FOOTNOTE_CLS}>
-        <Icon.Heart className="h-3.5 w-3.5 shrink-0 text-coral" />
-        Younger pupils see fewer faces and hear each one read aloud.
-      </div>
+      {readAloud ? (
+        <div className={FOOTNOTE_CLS}>
+          <Icon.Heart className="h-3.5 w-3.5 shrink-0 text-coral" />
+          Younger pupils see fewer faces and hear each one read aloud.
+        </div>
+      ) : null}
 
       <div className="mt-auto flex gap-2.5 pt-1.5">
         <button

@@ -1,6 +1,8 @@
 import { getToken } from "../../api/client"
 
-// FR-04-01 · GET /api/v1/check-ins/mood-set + POST /api/v1/check-ins
+// FR-04-01 · POST /api/v1/check-ins
+// FR-04-03 · GET /api/v1/check-ins/config (supersedes FR-04-01's original GET /mood-set — one
+// consolidated config endpoint per the FR-04-03 batch clarification-gate decision)
 //
 // Unlike the shared `api()` helper (`../../api/client`), this keeps the SERVER's own `detail`
 // message and status code on the thrown error — the ticket requires the real 403/409/422 copy be
@@ -8,8 +10,10 @@ import { getToken } from "../../api/client"
 
 const BASE = "/api/v1"
 
-export interface MoodSetResponse {
-  values: number[]
+export interface CheckInConfigResponse {
+  mode: "simple" | "rich"
+  mood_set: number[]
+  read_aloud: boolean
 }
 
 export interface ActivityOffer {
@@ -54,8 +58,8 @@ async function authedFetch<T>(path: string, opts: RequestInit = {}): Promise<T> 
   return (await res.json()) as T
 }
 
-export function getMoodSet(): Promise<MoodSetResponse> {
-  return authedFetch<MoodSetResponse>("/check-ins/mood-set")
+export function getCheckInConfig(): Promise<CheckInConfigResponse> {
+  return authedFetch<CheckInConfigResponse>("/check-ins/config")
 }
 
 export function submitCheckIn(
