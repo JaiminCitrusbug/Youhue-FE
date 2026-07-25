@@ -3,6 +3,7 @@ import { getToken } from "../../api/client"
 // FR-04-01 · POST /api/v1/check-ins
 // FR-04-03 · GET /api/v1/check-ins/config (supersedes FR-04-01's original GET /mood-set — one
 // consolidated config endpoint per the FR-04-03 batch clarification-gate decision)
+// FR-04-06 · POST /api/v1/check-ins/sync (offline-retained check-in, idempotent on client_entry_id)
 //
 // Unlike the shared `api()` helper (`../../api/client`), this keeps the SERVER's own `detail`
 // message and status code on the thrown error — the ticket requires the real 403/409/422 copy be
@@ -69,6 +70,21 @@ export function submitCheckIn(
   return authedFetch<CheckInResponse>("/check-ins", {
     method: "POST",
     body: JSON.stringify({
+      mood_value: moodValue,
+      ...(reflectionText ? { reflection_text: reflectionText } : {}),
+    }),
+  })
+}
+
+export function syncCheckIn(
+  clientEntryId: string,
+  moodValue: number,
+  reflectionText?: string,
+): Promise<CheckInResponse> {
+  return authedFetch<CheckInResponse>("/check-ins/sync", {
+    method: "POST",
+    body: JSON.stringify({
+      client_entry_id: clientEntryId,
       mood_value: moodValue,
       ...(reflectionText ? { reflection_text: reflectionText } : {}),
     }),
