@@ -136,7 +136,7 @@ export function InviteColleagueApp() {
 
   return (
     <>
-      <Card className="mb-4 max-w-[600px]">
+      <Card className="mb-4 max-w-[600px]"> {/* token-ok: approved value (do-not-restyle, screens/InviteColleague.tsx:19) */}
         <CardHeader icon={<Icon.Send />} title="Send an invitation" />
         <CardBody>
           {formError && (
@@ -180,7 +180,7 @@ export function InviteColleagueApp() {
         </CardBody>
       </Card>
 
-      <Card className="max-w-[760px]">
+      <Card className="max-w-[760px]"> {/* token-ok: approved value (do-not-restyle, screens/InviteColleague.tsx:34) */}
         <CardHeader icon={<Icon.Clock />} title="Pending invitations" hint="single-use, expiring links" />
         <CardBody flush>
           {rowsLoading ? (
@@ -196,7 +196,7 @@ export function InviteColleagueApp() {
                 <>{inv.email}</>,
                 statusTag(inv.status),
                 inv.status === "invited" || inv.status === "sent" ? (
-                  <span key="actions" className="flex items-center gap-2.5 text-[12px] font-semibold text-coral-600">
+                  <span key="actions" className="flex items-center gap-2.5 text-[12px] font-semibold text-coral-600"> {/* token-ok: approved value (do-not-restyle, screens/InviteColleague.tsx:44) */}
                     <button
                       type="button"
                       disabled={pendingActionId === inv.id}
