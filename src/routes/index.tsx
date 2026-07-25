@@ -11,7 +11,9 @@ import {
 } from "../components/layout/system"
 import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
+import { AcceptInviteApp } from "./accept-invite"
 import { CheckInApp } from "./checkin"
+import { InviteColleagueApp } from "./class-invitations"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { SchoolAccounts } from "./admin-console/schools/SchoolAccounts"
 import { SchoolSupport } from "./admin-console/schools/SchoolSupport"
@@ -71,6 +73,10 @@ export function AppRoutes() {
       <Route path="/register-school/*" element={<SchoolRegisterApp />} />
       {/* FR-19-01 — internal admin console sign-in owns its own route module (decision #4). */}
       <Route path="/admin/sign-in/*" element={<AdminSignInApp />} />
+      {/* FR-02-03 — accepting a shared-class colleague invitation owns its own route module
+          (decision #4), PUBLIC/pre-login (the invitee has no account yet, or is only proving
+          control of the invite link). */}
+      <Route path="/accept-invite" element={<AcceptInviteApp />} />
       <Route
         path="/app"
         element={
@@ -107,6 +113,18 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.dashboard}>
               <RosterListApp />
+            </RequireRole>
+          }
+        />
+        {/* FR-02-03 — SC-059 invite a colleague to co-teach a shared class. Class-owner
+            (teacher)-only — `support` staff hold only shared-scope access, never owner, so they
+            are excluded from this route entirely (see `lib/roles.ts`); the BE additionally
+            re-checks ownership AND same-school on every write. */}
+        <Route
+          path="roster/invite"
+          element={
+            <RequireRole allow={ROLE_ROUTES.classInvitations}>
+              <InviteColleagueApp />
             </RequireRole>
           }
         />

@@ -17,6 +17,10 @@ export const ROLE_ROUTES: Record<string, string[]> = {
   leadership: ["leadership"],
   district: ["district"],
   admin: ["admin"],
+  // FR-02-03: only a class OWNER may invite a colleague to share it. `support` staff hold only
+  // shared-scope class access (never owner, by construction — application/authz/services.py),
+  // so they are excluded here rather than reaching a route that can never do anything for them.
+  classInvitations: ["teacher"],
 }
 
 // The landing route for each effective role (used by RoleHome).

@@ -5,7 +5,12 @@ import { effectiveRole } from "../../lib/roles"
 
 // Role-driven nav (fed by the backend role; INFRA-03 owns who may). Presentational only.
 const NAV_BY_ROLE: Record<string, { label: string; to: string }[]> = {
-  teacher: [{ label: "Class dashboard", to: "/app/dashboard" }],
+  // FR-02-03: only a class owner (teacher) may invite a colleague — `support` staff can never
+  // own a class (application/authz/services.py), so this link is omitted from their nav.
+  teacher: [
+    { label: "Class dashboard", to: "/app/dashboard" },
+    { label: "Invite colleague", to: "/app/roster/invite" },
+  ],
   support: [{ label: "Shared class", to: "/app/dashboard" }],
   leadership: [
     { label: "Leadership overview", to: "/app/leadership" },
