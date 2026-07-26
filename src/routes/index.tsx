@@ -27,6 +27,7 @@ import { AccessWindow } from "./leadership/AccessWindow"
 import { AlertRouting } from "./leadership/AlertRouting"
 import { ConcernWords } from "./leadership/ConcernWords"
 import { StaffManagement } from "./leadership/StaffManagement"
+import { SubscriptionApp } from "./subscription"
 import { RosterListApp } from "./roster"
 import { RosterImportApp } from "./roster-import"
 import { SchoolRegisterApp } from "./school-register"
@@ -168,6 +169,17 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.leadership}>
               <AccessWindow />
+            </RequireRole>
+          }
+        />
+        {/* FR-17-01 — SC-085 subscription/entitlements. The BE endpoint itself is any-staff
+            (Scenario 2: "staff use the platform"), but the entry point lives under the
+            leadership nav, matching the approved screen's own `chrome('leadership', ...)`. */}
+        <Route
+          path="leadership/subscription"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <SubscriptionApp />
             </RequireRole>
           }
         />
