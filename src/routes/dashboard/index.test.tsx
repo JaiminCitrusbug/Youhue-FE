@@ -97,7 +97,7 @@ describe("ClassDashboardApp (FR-10-01 · SC-027, FR-10-02 roster delta)", () => 
     renderGated()
     expect(await screen.findByText("8")).toBeInTheDocument()
     expect(screen.getByText("Trending up vs last period")).toBeInTheDocument()
-    expect(dashboardMock).toHaveBeenCalledWith("cls1")
+    expect(dashboardMock).toHaveBeenCalledWith("cls1", undefined)
   })
 
   it("states whose data, which period/timezone, and live-or-as-of (ticket Scenario 2)", async () => {
@@ -171,6 +171,72 @@ describe("ClassDashboardApp (FR-10-01 · SC-027, FR-10-02 roster delta)", () => 
       rosterMock.mockResolvedValue([])
       renderGated()
       expect(await screen.findByText("No students yet")).toBeInTheDocument()
+    })
+  })
+
+  describe("range filter (FR-10-03)", () => {
+    it("Scenario 1 — selecting 'month' re-fetches with the real range param", async () => {
+      const { default: userEvent } = await import("@testing-library/user-event")
+      renderGated()
+      await screen.findByText("Year 5 — Maple")
+      dashboardMock.mockResolvedValue({ ...DASH, period: "this_month", mood_index: 6.4 })
+
+      const select = screen.getByLabelText("Time range")
+      await userEvent.selectOptions(select, "month")
+
+      await waitFor(() => expect(dashboardMock).toHaveBeenCalledWith("cls1", "month"))
+      expect(await screen.findByText("6.4")).toBeInTheDocument()
+    })
+
+    it("selecting 'term' re-fetches with range=term", async () => {
+      const { default: userEvent } = await import("@testing-library/user-event")
+      renderGated()
+      await screen.findByText("Year 5 — Maple")
+
+      const select = screen.getByLabelText("Time range")
+      await userEvent.selectOptions(select, "term")
+
+      await waitFor(() => expect(dashboardMock).toHaveBeenCalledWith("cls1", "term"))
+    })
+
+    it("Scenario 2 — picking a specific date re-fetches with range=around:{date}", async () => {
+      const { default: userEvent } = await import("@testing-library/user-event")
+      renderGated()
+      await screen.findByText("Year 5 — Maple")
+      dashboardMock.mockResolvedValue({ ...DASH, period: "around" })
+
+      const dateInput = screen.getByLabelText("Or around a specific date")
+      await userEvent.type(dateInput, "2026-06-10")
+
+      await waitFor(() => expect(dashboardMock).toHaveBeenCalledWith("cls1", "around:2026-06-10"))
+    })
+
+    it("re-selecting a named range clears a previously-picked date", async () => {
+      const { default: userEvent } = await import("@testing-library/user-event")
+      renderGated()
+      await screen.findByText("Year 5 — Maple")
+
+      const dateInput = screen.getByLabelText("Or around a specific date") as HTMLInputElement
+      await userEvent.type(dateInput, "2026-06-10")
+      await waitFor(() => expect(dateInput.value).toBe("2026-06-10"))
+
+      const select = screen.getByLabelText("Time range")
+      await userEvent.selectOptions(select, "month")
+      await waitFor(() => expect(dateInput.value).toBe(""))
+    })
+
+    it("invalid range (e.g. server 422) surfaces the real server message, never a silent no-op", async () => {
+      const { default: userEvent } = await import("@testing-library/user-event")
+      renderGated()
+      await screen.findByText("Year 5 — Maple")
+      dashboardMock.mockRejectedValue(
+        new (await import("./api")).DashboardApiError(422, "range must be one of this_week|month|term"),
+      )
+
+      const select = screen.getByLabelText("Time range")
+      await userEvent.selectOptions(select, "term")
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(/range must be one of/i)
     })
   })
 })

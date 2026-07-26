@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
 import {
-  Banner, Button, Card, CardBody, CardHeader, EmptyState, Icon, PageHeader, StatTile, Table, Trend,
+  Banner, Button, Card, CardBody, CardHeader, EmptyState, Field, Icon, Input, PageHeader, Select,
+  StatTile, Table, Trend,
 } from "@design/components"
 
 import {
@@ -17,11 +18,14 @@ import {
 // LOOK SOURCE — REUSE, NEVER RE-IMPLEMENT (CLAUDE.md step 7). `design/approved/screens/
 // ClassDashboard.tsx` is a STATIC PREVIEW with device chrome and THREE stat tiles (mood index,
 // participation, open flags) plus a per-student "needing a look" table with mood trend/flag/
-// drill-in per row. This ticket's (FR-10-01) own DoD is narrower: `GET /classes/{id}/dashboard`
-// returns ONLY `{ mood_index, trend, as_of, period, timezone }` — no participation count, no flag
-// count. Composing the participation/flag STAT TILES here would fabricate data with no backing
-// endpoint (forbidden — same class of call FR-08-01 made dropping MyHistory's streak/week-summary/
-// dead-link), so only ONE `StatTile` (mood index + `Trend`) is built from THIS ticket's own data.
+// drill-in per row, and no interactive filter control at all (its "This week" text is static
+// copy). FR-10-01's own DoD is narrower: `GET /classes/{id}/dashboard` returns ONLY
+// `{ mood_index, trend, as_of, period, timezone }` — no participation count, no flag count.
+// Composing the participation/flags tiles here would either recompute a figure client-side
+// (forbidden — SRS §13.5) or fabricate data with no backing endpoint (forbidden — same class of
+// call FR-08-01 made dropping MyHistory's streak/week-summary/dead-link). This screen therefore
+// reuses ONLY the approved primitives its real sections need: `PageHeader` (whose/period/tz/live)
+// + one `StatTile` (mood index) with a `Trend` chip for the direction.
 //
 // FR-10-02 ADDS the roster table below (`GET /classes/{id}/roster`, a minimal justified GET-add —
 // same precedent as FR-02-03's class-list endpoint — needed because "click into a single student"
@@ -29,7 +33,15 @@ import {
 // `/app/dashboard/students/:id` (`student-detail` route module) for that student's own mood
 // history/reflections/participation — no flag/trend column per row (no backing data yet; that's
 // FR-12-*'s flag pipeline), so only the name + a real "View" action are shown, never a dead
-// control. FR-10-03 (range filter) and FR-10-05 extend this screen later.
+// control. Fetched once on mount — the roster itself doesn't change when the time-range filter
+// changes, only the dashboard figures do.
+//
+// FR-10-03 ADDS the range filter: a `Select` (this week / month / term, from `@design/components`
+// forms.tsx — the approved screen has no filter control to copy, so this composes the SAME
+// primitive InviteColleague.tsx/ConcernWords.tsx already use for a form control) plus a native
+// date `Input` for "around a specific date" (Scenario 2) — selecting either re-fetches the real
+// `range=` query, never re-derives the currently-shown figures from the prior fetch. FR-10-05
+// (empty/loading/error polish) extends this screen later.
 //
 // CLASS SELECTION — not in this ticket's scope (no class-picker screen exists yet; "drill into a
 // student"/multi-class UX is FR-10-02/03's job). Reuses FR-02-03's existing `GET /classes/mine`
@@ -54,12 +66,32 @@ function trendLabel(dir: ClassDashboard["trend"]) {
   return "Flat vs last period"
 }
 
+const RANGE_OPTIONS = [
+  { value: "this_week", label: "This week" },
+  { value: "month", label: "This month" },
+  { value: "term", label: "This term" },
+] as const
+
 export function ClassDashboardApp() {
   const navigate = useNavigate()
+  const [classId, setClassId] = useState<string | null>(null)
   const [dash, setDash] = useState<ClassDashboard | null>(null)
   const [roster, setRoster] = useState<RosterStudent[] | null>(null)
   const [noClasses, setNoClasses] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [range, setRange] = useState<string>("this_week")
+  const [aroundDate, setAroundDate] = useState("")
+
+  const loadDashboard = useCallback((id: string, r: string) => {
+    setLoadError(null)
+    getClassDashboard(id, r === "this_week" ? undefined : r)
+      .then((d) => setDash(d))
+      .catch((e: unknown) => {
+        setLoadError(
+          e instanceof DashboardApiError ? e.message : "Couldn't load the dashboard. Please try again.",
+        )
+      })
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -70,14 +102,13 @@ export function ClassDashboardApp() {
           setNoClasses(true)
           return
         }
-        const classId = classes[0].id
-        return Promise.all([getClassDashboard(classId), getClassRoster(classId)]).then(
-          ([d, r]) => {
-            if (cancelled) return
-            setDash(d)
-            setRoster(r)
-          },
-        )
+        const id = classes[0].id
+        setClassId(id)
+        return Promise.all([getClassDashboard(id, undefined), getClassRoster(id)]).then(([d, r]) => {
+          if (cancelled) return
+          setDash(d)
+          setRoster(r)
+        })
       })
       .catch((e: unknown) => {
         if (cancelled) return
@@ -89,6 +120,20 @@ export function ClassDashboardApp() {
       cancelled = true
     }
   }, [])
+
+  function onRangeChange(value: string) {
+    setRange(value)
+    setAroundDate("")
+    if (classId) loadDashboard(classId, value)
+  }
+
+  function onAroundDateChange(value: string) {
+    setAroundDate(value)
+    if (classId && value) {
+      setRange("around")
+      loadDashboard(classId, `around:${value}`)
+    }
+  }
 
   if (loadError) {
     return (
@@ -115,6 +160,27 @@ export function ClassDashboardApp() {
   return (
     <>
       <PageHeader crumb="My classes" title={dash.class_name} sub={asOfLabel} />
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Field label="Time range">
+          <Select
+            aria-label="Time range"
+            value={range === "around" ? "this_week" : range}
+            onChange={(e) => onRangeChange(e.target.value)}
+          >
+            {RANGE_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Or around a specific date">
+          <Input
+            type="date"
+            aria-label="Or around a specific date"
+            value={aroundDate}
+            onChange={(e) => onAroundDateChange(e.target.value)}
+          />
+        </Field>
+      </div>
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatTile
           label="Class mood index"

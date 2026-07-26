@@ -58,8 +58,9 @@ export async function getMyClasses(): Promise<MyClass[]> {
   return data.classes
 }
 
-export async function getClassDashboard(classId: string): Promise<ClassDashboard> {
-  return authedFetch<ClassDashboard>(`/classes/${classId}/dashboard`)
+export async function getClassDashboard(classId: string, range?: string): Promise<ClassDashboard> {
+  const query = range ? `?range=${encodeURIComponent(range)}` : ""
+  return authedFetch<ClassDashboard>(`/classes/${classId}/dashboard${query}`)
 }
 
 export async function getClassRoster(classId: string): Promise<RosterStudent[]> {
