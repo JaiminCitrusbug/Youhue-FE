@@ -17,6 +17,7 @@ import { InviteColleagueApp } from "./class-invitations"
 import { ClassDashboardApp } from "./dashboard"
 import { StudentDetailApp } from "./student-detail"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
+import { AdminStats } from "./admin-console/stats/AdminStats"
 import { SchoolAccounts } from "./admin-console/schools/SchoolAccounts"
 import { SchoolSupport } from "./admin-console/schools/SchoolSupport"
 import { SchoolTrial } from "./admin-console/schools/SchoolTrial"
@@ -242,6 +243,17 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.admin}>
               <DefaultWordListsApp />
+            </RequireRole>
+          }
+        />
+        {/* FR-19-07 — SC-074 platform statistics: schools/active trials/check-in volume/alert
+            volume, read-only aggregates. Same RequireRole gate; the BE additionally enforces the
+            `view_statistics` RBAC permission. */}
+        <Route
+          path="admin/stats"
+          element={
+            <RequireRole allow={ROLE_ROUTES.admin}>
+              <AdminStats />
             </RequireRole>
           }
         />
