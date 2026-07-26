@@ -22,6 +22,11 @@ export interface ClassDashboard {
   timezone: string
 }
 
+export interface RosterStudent {
+  id: string
+  display_name: string
+}
+
 export class DashboardApiError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -55,4 +60,9 @@ export async function getMyClasses(): Promise<MyClass[]> {
 
 export async function getClassDashboard(classId: string): Promise<ClassDashboard> {
   return authedFetch<ClassDashboard>(`/classes/${classId}/dashboard`)
+}
+
+export async function getClassRoster(classId: string): Promise<RosterStudent[]> {
+  const data = await authedFetch<{ students: RosterStudent[] }>(`/classes/${classId}/roster`)
+  return data.students
 }

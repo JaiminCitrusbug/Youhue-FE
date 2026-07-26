@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 
-import { Banner, EmptyState, Icon, PageHeader, StatTile, Trend } from "@design/components"
+import {
+  Banner, Button, Card, CardBody, CardHeader, EmptyState, Icon, PageHeader, StatTile, Table, Trend,
+} from "@design/components"
 
-import { getClassDashboard, getMyClasses, DashboardApiError, type ClassDashboard } from "./api"
+import {
+  getClassDashboard, getClassRoster, getMyClasses, DashboardApiError,
+  type ClassDashboard, type RosterStudent,
+} from "./api"
 
 // FR-10-01 · SC-027 — the class dashboard: a teacher's weighted mood index + trend for their
 // class, and a header stating whose data, which period/timezone, and live-or-as-of (ticket
@@ -11,16 +17,19 @@ import { getClassDashboard, getMyClasses, DashboardApiError, type ClassDashboard
 // LOOK SOURCE — REUSE, NEVER RE-IMPLEMENT (CLAUDE.md step 7). `design/approved/screens/
 // ClassDashboard.tsx` is a STATIC PREVIEW with device chrome and THREE stat tiles (mood index,
 // participation, open flags) plus a per-student "needing a look" table with mood trend/flag/
-// drill-in per row. This ticket's own DoD is narrower: `GET /classes/{id}/dashboard` returns ONLY
-// `{ mood_index, trend, as_of, period, timezone }` — no participation count, no flag count, no
-// per-student rows (those need FR-10-02's drill-in endpoint, FR-12-*'s flag data, and FR-10-03's
-// range filter, none of which exist yet). Composing the participation/flags tiles or the student
-// table here would either recompute a figure client-side (forbidden — SRS §13.5) or fabricate
-// data with no backing endpoint (forbidden — same class of call FR-08-01 made dropping MyHistory's
-// streak/week-summary/dead-link). This screen therefore reuses ONLY the approved primitives its
-// ONE real section needs: `PageHeader` (whose/period/tz/live) + one `StatTile` (mood index) with a
-// `Trend` chip for the direction. FR-10-02/03/05 (drill-in, range filter, empty/loading/error
-// polish) extend this screen later, per the ticket's own "Enables" line.
+// drill-in per row. This ticket's (FR-10-01) own DoD is narrower: `GET /classes/{id}/dashboard`
+// returns ONLY `{ mood_index, trend, as_of, period, timezone }` — no participation count, no flag
+// count. Composing the participation/flag STAT TILES here would fabricate data with no backing
+// endpoint (forbidden — same class of call FR-08-01 made dropping MyHistory's streak/week-summary/
+// dead-link), so only ONE `StatTile` (mood index + `Trend`) is built from THIS ticket's own data.
+//
+// FR-10-02 ADDS the roster table below (`GET /classes/{id}/roster`, a minimal justified GET-add —
+// same precedent as FR-02-03's class-list endpoint — needed because "click into a single student"
+// (FR-10-02 Scenario 1) has nothing to click without real rows). Each row drills into
+// `/app/dashboard/students/:id` (`student-detail` route module) for that student's own mood
+// history/reflections/participation — no flag/trend column per row (no backing data yet; that's
+// FR-12-*'s flag pipeline), so only the name + a real "View" action are shown, never a dead
+// control. FR-10-03 (range filter) and FR-10-05 extend this screen later.
 //
 // CLASS SELECTION — not in this ticket's scope (no class-picker screen exists yet; "drill into a
 // student"/multi-class UX is FR-10-02/03's job). Reuses FR-02-03's existing `GET /classes/mine`
@@ -46,7 +55,9 @@ function trendLabel(dir: ClassDashboard["trend"]) {
 }
 
 export function ClassDashboardApp() {
+  const navigate = useNavigate()
   const [dash, setDash] = useState<ClassDashboard | null>(null)
+  const [roster, setRoster] = useState<RosterStudent[] | null>(null)
   const [noClasses, setNoClasses] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -59,9 +70,14 @@ export function ClassDashboardApp() {
           setNoClasses(true)
           return
         }
-        return getClassDashboard(classes[0].id).then((d) => {
-          if (!cancelled) setDash(d)
-        })
+        const classId = classes[0].id
+        return Promise.all([getClassDashboard(classId), getClassRoster(classId)]).then(
+          ([d, r]) => {
+            if (cancelled) return
+            setDash(d)
+            setRoster(r)
+          },
+        )
       })
       .catch((e: unknown) => {
         if (cancelled) return
@@ -113,6 +129,34 @@ export function ClassDashboardApp() {
           }
         />
       </div>
+
+      <Card>
+        <CardHeader icon={<Icon.Users />} title="Students" hint={`${roster?.length ?? 0} in this class`} />
+        <CardBody flush={(roster?.length ?? 0) > 0}>
+          {roster && roster.length === 0 ? (
+            <EmptyState icon={<Icon.Users />} title="No students yet">
+              Students will appear here once they are added to this class.
+            </EmptyState>
+          ) : (
+            <Table
+              head={["Name", ""]}
+              rows={(roster ?? []).map((s) => [
+                <span key="name">{s.display_name}</span>,
+                <div key="action" className="text-right">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    icon={<Icon.Eye />}
+                    onClick={() => navigate(`/app/dashboard/students/${s.id}`)}
+                  >
+                    View
+                  </Button>
+                </div>,
+              ])}
+            />
+          )}
+        </CardBody>
+      </Card>
     </>
   )
 }

@@ -15,6 +15,7 @@ import { AcceptInviteApp } from "./accept-invite"
 import { CheckInApp } from "./checkin"
 import { InviteColleagueApp } from "./class-invitations"
 import { ClassDashboardApp } from "./dashboard"
+import { StudentDetailApp } from "./student-detail"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { SchoolAccounts } from "./admin-console/schools/SchoolAccounts"
 import { SchoolSupport } from "./admin-console/schools/SchoolSupport"
@@ -92,6 +93,17 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.dashboard}>
               <ClassDashboardApp />
+            </RequireRole>
+          }
+        />
+        {/* FR-10-02 — SC-028 single-student drill-in from the class dashboard. Same role gate as
+            `dashboard` above; the BE additionally re-checks own/shared class scope per student
+            (403), same-school (403), and unknown id (404). */}
+        <Route
+          path="dashboard/students/:studentId"
+          element={
+            <RequireRole allow={ROLE_ROUTES.dashboard}>
+              <StudentDetailApp />
             </RequireRole>
           }
         />

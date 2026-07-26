@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { setToken } from "../../api/client"
-import { DashboardApiError, getClassDashboard, getMyClasses } from "./api"
+import { DashboardApiError, getClassDashboard, getClassRoster, getMyClasses } from "./api"
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
@@ -56,5 +56,17 @@ describe("dashboard client (FR-10-01)", () => {
     const err = await getMyClasses().catch((e: unknown) => e)
     expect(err).toBeInstanceOf(DashboardApiError)
     expect((err as DashboardApiError).message).toMatch(/something went wrong/i)
+  })
+
+  it("getClassRoster (FR-10-02) fetches the given class id and unwraps the students array", async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(200, { students: [{ id: "s1", display_name: "Amy" }] }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    const res = await getClassRoster("c1")
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/v1/classes/c1/roster", expect.anything())
+    expect(res).toEqual([{ id: "s1", display_name: "Amy" }])
   })
 })
