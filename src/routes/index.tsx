@@ -29,6 +29,7 @@ import { LeadershipConsentApp } from "./leadership-consent"
 import { AccessWindow } from "./leadership/AccessWindow"
 import { AlertRouting } from "./leadership/AlertRouting"
 import { ConcernWords } from "./leadership/ConcernWords"
+import { DataExportScreen } from "./leadership/DataExportScreen"
 import { StaffManagement } from "./leadership/StaffManagement"
 import { TriageQueue } from "./leadership/TriageQueue"
 import { SubscriptionApp } from "./subscription"
@@ -216,6 +217,16 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.leadership}>
               <SubscriptionApp />
+            </RequireRole>
+          }
+        />
+        {/* FR-20-01 — SC-064 school data export (GATE G-12). Same RequireRole gate; the BE
+            additionally re-checks the `leadership` role AND own-school scope on every call. */}
+        <Route
+          path="leadership/export"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <DataExportScreen />
             </RequireRole>
           }
         />
