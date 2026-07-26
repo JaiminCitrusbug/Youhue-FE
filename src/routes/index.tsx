@@ -28,6 +28,7 @@ import { AccessWindow } from "./leadership/AccessWindow"
 import { AlertRouting } from "./leadership/AlertRouting"
 import { ConcernWords } from "./leadership/ConcernWords"
 import { StaffManagement } from "./leadership/StaffManagement"
+import { TriageQueue } from "./leadership/TriageQueue"
 import { SubscriptionApp } from "./subscription"
 import { RosterListApp } from "./roster"
 import { RosterImportApp } from "./roster-import"
@@ -138,6 +139,16 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.classInvitations}>
               <InviteColleagueApp />
+            </RequireRole>
+          }
+        />
+        {/* FR-12-06 — SC-038 triage queue: open, triage-band flags for human review (GATE G-9).
+            Any-staff-role, school-scoped (same posture as the BE's other /risk/* endpoints). */}
+        <Route
+          path="triage"
+          element={
+            <RequireRole allow={ROLE_ROUTES.triage}>
+              <TriageQueue />
             </RequireRole>
           }
         />

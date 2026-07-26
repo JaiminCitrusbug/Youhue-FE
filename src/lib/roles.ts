@@ -21,6 +21,10 @@ export const ROLE_ROUTES: Record<string, string[]> = {
   // shared-scope class access (never owner, by construction — application/authz/services.py),
   // so they are excluded here rather than reaching a route that can never do anything for them.
   classInvitations: ["teacher"],
+  // FR-12-06 (SC-038): the BE (`GET /risk/triage`) is any-staff-role, school-scoped (same posture
+  // as /risk/score) — every staff role that can see students' wellbeing signals may review the
+  // triage queue, matching the approved screen's teacher-facing chrome plus leadership oversight.
+  triage: ["teacher", "support", "leadership"],
 }
 
 // The landing route for each effective role (used by RoleHome).
