@@ -17,6 +17,7 @@ import { CheckInApp } from "./checkin"
 import { InviteColleagueApp } from "./class-invitations"
 import { ClassDashboardApp } from "./dashboard"
 import { StudentDetailApp } from "./student-detail"
+import { Notifications } from "./notifications/Notifications"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { AdminStats } from "./admin-console/stats/AdminStats"
 import { SchoolAccounts } from "./admin-console/schools/SchoolAccounts"
@@ -163,6 +164,17 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.triage}>
               <TriageQueue />
+            </RequireRole>
+          }
+        />
+        {/* FR-18-03 — SC-054 notifications centre: the caller's own feed with per-channel
+            delivery status (failed/retrying surfaced, never a silent gap). Any-staff-role,
+            self-scoped (same posture as the BE's GET /notifications). */}
+        <Route
+          path="notifications"
+          element={
+            <RequireRole allow={ROLE_ROUTES.notifications}>
+              <Notifications />
             </RequireRole>
           }
         />
