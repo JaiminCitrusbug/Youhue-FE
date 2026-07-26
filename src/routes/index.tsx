@@ -14,6 +14,7 @@ import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 import { AcceptInviteApp } from "./accept-invite"
 import { CheckInApp } from "./checkin"
 import { InviteColleagueApp } from "./class-invitations"
+import { ClassDashboardApp } from "./dashboard"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { SchoolAccounts } from "./admin-console/schools/SchoolAccounts"
 import { SchoolSupport } from "./admin-console/schools/SchoolSupport"
@@ -31,10 +32,6 @@ import { RosterImportApp } from "./roster-import"
 import { SchoolRegisterApp } from "./school-register"
 import { StudentSignInApp } from "./student-signin"
 import { MyHistoryApp } from "./student-history"
-
-function Placeholder({ title }: { title: string }) {
-  return <h1 className="text-2xl font-bold text-ink">{title}</h1>
-}
 
 function RoleHome() {
   const { user } = useAuth()
@@ -87,11 +84,13 @@ export function AppRoutes() {
         }
       >
         <Route index element={<RoleHome />} />
+        {/* FR-10-01 — SC-027 class dashboard: weighted mood index + trend. Replaces the trunk-era
+            stub (same precedent as FR-04-01/FR-02-02/etc. this session). */}
         <Route
           path="dashboard"
           element={
             <RequireRole allow={ROLE_ROUTES.dashboard}>
-              <Placeholder title="Class dashboard" />
+              <ClassDashboardApp />
             </RequireRole>
           }
         />
