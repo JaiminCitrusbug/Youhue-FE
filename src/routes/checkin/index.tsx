@@ -3,7 +3,15 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom"
 
 import { Banner, Icon, MoodFace } from "@design/components"
 
-import { CheckInApiError, getCheckInConfig, submitCheckIn, syncCheckIn } from "./api"
+import { ActivityScreen } from "./ActivityScreen"
+import {
+  type ActivityOffer,
+  CheckInApiError,
+  getCheckInConfig,
+  recordActivityEngagement,
+  submitCheckIn,
+  syncCheckIn,
+} from "./api"
 import { MoodScreen } from "./MoodScreen"
 import { moodEntryForValue } from "./moods"
 import { indexedDbStore, type OfflineStore } from "./offlineStore"
@@ -41,6 +49,15 @@ export function CheckInApp({
   const [done, setDone] = useState(false)
   const [retainedOffline, setRetainedOffline] = useState(false)
   const syncingRef = useRef(false)
+
+  // FR-05-01 — the activity offered on THIS submit (foreground path only; a background retained-
+  // offline sync, see `trySyncRetained` below, does not surface one — same as today's already
+  // established discard of that response's other fields). `activityHandled` gates the fall-through
+  // to the plain "done" banner once the student starts or skips.
+  const [checkinId, setCheckinId] = useState<string | null>(null)
+  const [activityOffer, setActivityOffer] = useState<ActivityOffer | null>(null)
+  const [activityHandled, setActivityHandled] = useState(false)
+  const [activityStarting, setActivityStarting] = useState(false)
 
   // FR-04-06 — auto-submit a retained offline check-in once we're back online: run once on mount
   // (covers "the app was reopened after being offline the whole time") and again on every browser
@@ -110,7 +127,9 @@ export function CheckInApp({
     setSubmitting(true)
     setSubmitError(null)
     try {
-      await submitCheckIn(selectedMood, reflectionText || undefined)
+      const res = await submitCheckIn(selectedMood, reflectionText || undefined)
+      setCheckinId(res.checkin_id)
+      setActivityOffer(res.activity_offer)
       setSubmitting(false)
       setDone(true)
     } catch (e) {
@@ -133,6 +152,21 @@ export function CheckInApp({
     }
   }
 
+  // FR-05-01 — record that the student started the offered activity. Best-effort (ticket: the
+  // activity is optional and never blocks) — a failure here must never trap the student on this
+  // screen; either way they proceed to the closure banner.
+  async function startActivity(id: string) {
+    setActivityStarting(true)
+    try {
+      await recordActivityEngagement(id, "started")
+    } catch {
+      // swallow — see comment above
+    } finally {
+      setActivityStarting(false)
+      setActivityHandled(true)
+    }
+  }
+
   // FR-04-06 · SC-023 s3 (offline/retained) — the approved `StudentCheckIn.tsx` does not define
   // this state's markup either (same gap as the "done" state below); reuses ONLY the existing
   // `Banner`/`Icon` primitives, no new typography/layout authored.
@@ -144,6 +178,19 @@ export function CheckInApp({
           online.
         </Banner>
       </div>
+    )
+  }
+
+  // FR-05-01 — offer the short guided activity before the plain closure banner, exactly once
+  // (`activityHandled` flips true on Start or Skip, falling through to the banner below).
+  if (done && activityOffer && !activityHandled && checkinId) {
+    return (
+      <ActivityScreen
+        activityTitle={activityOffer.title}
+        starting={activityStarting}
+        onStart={() => void startActivity(checkinId)}
+        onSkip={() => setActivityHandled(true)}
+      />
     )
   }
 

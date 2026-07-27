@@ -90,3 +90,20 @@ export function syncCheckIn(
     }),
   })
 }
+
+// FR-05-01 · POST /api/v1/check-ins/{id}/activity — record that the student started or completed
+// the activity offered on their own check-in. No "skip" verb: skipping is never calling this.
+
+export interface ActivityEngagementResponse {
+  activity: { activity_id: string; title: string; type: string; status: string }
+}
+
+export function recordActivityEngagement(
+  checkinId: string,
+  activityStatus: "started" | "completed",
+): Promise<ActivityEngagementResponse> {
+  return authedFetch<ActivityEngagementResponse>(`/check-ins/${checkinId}/activity`, {
+    method: "POST",
+    body: JSON.stringify({ status: activityStatus }),
+  })
+}

@@ -15,6 +15,7 @@ const api = vi.hoisted(() => ({
   getCheckInConfig: vi.fn(),
   submitCheckIn: vi.fn(),
   syncCheckIn: vi.fn(),
+  recordActivityEngagement: vi.fn(),
 }))
 vi.mock("./api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./api")>()
@@ -23,6 +24,7 @@ vi.mock("./api", async (importOriginal) => {
     getCheckInConfig: api.getCheckInConfig,
     submitCheckIn: api.submitCheckIn,
     syncCheckIn: api.syncCheckIn,
+    recordActivityEngagement: api.recordActivityEngagement,
   }
 })
 
@@ -57,6 +59,7 @@ describe("CheckInApp (FR-04-01 · SC-023)", () => {
     api.getCheckInConfig.mockReset()
     api.submitCheckIn.mockReset()
     api.syncCheckIn.mockReset()
+    api.recordActivityEngagement.mockReset()
     api.getCheckInConfig.mockResolvedValue({
       mode: "rich", mood_set: [0, 1, 2, 3, 4, 5], read_aloud: false,
     })
@@ -290,6 +293,81 @@ describe("CheckInApp (FR-04-01 · SC-023)", () => {
     window.dispatchEvent(new Event("online"))
 
     await waitFor(() => expect(api.syncCheckIn).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText(/check-in for today is saved/i)).toBeInTheDocument()
+  })
+
+  // ---- FR-05-01 — post-check-in activity offer ----------------------------------------------------
+
+  it("a non-null activity_offer shows the activity screen instead of the plain closure banner", async () => {
+    const user = userEvent.setup()
+    api.submitCheckIn.mockResolvedValue({
+      checkin_id: "c20",
+      activity_offer: { activity_id: "a1", title: "Breathing break", type: "breathing" },
+    })
+    renderApp()
+
+    await user.click(await screen.findByRole("button", { name: /good/i }))
+    await user.click(screen.getByRole("button", { name: /continue/i }))
+    await user.click(await screen.findByRole("button", { name: /^skip$/i }))
+
+    expect(await screen.findByText("Breathing break")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /start the reset/i })).toBeInTheDocument()
+    expect(screen.queryByText(/check-in for today is saved/i)).not.toBeInTheDocument()
+  })
+
+  it("Start records status=started against the check-in, then shows the closure banner", async () => {
+    const user = userEvent.setup()
+    api.submitCheckIn.mockResolvedValue({
+      checkin_id: "c21",
+      activity_offer: { activity_id: "a1", title: "Grounding", type: "grounding" },
+    })
+    api.recordActivityEngagement.mockResolvedValue({
+      activity: { activity_id: "a1", title: "Grounding", type: "grounding", status: "started" },
+    })
+    renderApp()
+
+    await user.click(await screen.findByRole("button", { name: /good/i }))
+    await user.click(screen.getByRole("button", { name: /continue/i }))
+    await user.click(await screen.findByRole("button", { name: /^skip$/i }))
+    await user.click(await screen.findByRole("button", { name: /start the reset/i }))
+
+    await waitFor(() =>
+      expect(api.recordActivityEngagement).toHaveBeenCalledWith("c21", "started"),
+    )
+    expect(await screen.findByText(/check-in for today is saved/i)).toBeInTheDocument()
+  })
+
+  it("Skip for now shows the closure banner without calling the activity endpoint", async () => {
+    const user = userEvent.setup()
+    api.submitCheckIn.mockResolvedValue({
+      checkin_id: "c22",
+      activity_offer: { activity_id: "a1", title: "Stretch break", type: "stretch" },
+    })
+    renderApp()
+
+    await user.click(await screen.findByRole("button", { name: /good/i }))
+    await user.click(screen.getByRole("button", { name: /continue/i }))
+    await user.click(await screen.findByRole("button", { name: /^skip$/i }))
+    await user.click(await screen.findByRole("button", { name: /skip for now/i }))
+
+    expect(await screen.findByText(/check-in for today is saved/i)).toBeInTheDocument()
+    expect(api.recordActivityEngagement).not.toHaveBeenCalled()
+  })
+
+  it("a failure recording the activity engagement never traps the student — still shows closure", async () => {
+    const user = userEvent.setup()
+    api.submitCheckIn.mockResolvedValue({
+      checkin_id: "c23",
+      activity_offer: { activity_id: "a1", title: "Brain break", type: "brain_break" },
+    })
+    api.recordActivityEngagement.mockRejectedValue(new Error("network error"))
+    renderApp()
+
+    await user.click(await screen.findByRole("button", { name: /good/i }))
+    await user.click(screen.getByRole("button", { name: /continue/i }))
+    await user.click(await screen.findByRole("button", { name: /^skip$/i }))
+    await user.click(await screen.findByRole("button", { name: /start the reset/i }))
+
     expect(await screen.findByText(/check-in for today is saved/i)).toBeInTheDocument()
   })
 })
