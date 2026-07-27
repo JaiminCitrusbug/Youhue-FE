@@ -3,6 +3,9 @@
 // no state/API): PrivacyPolicy (SC-009) and CoppaFerpa (SC-010) — reused from
 // design/approved/screens/{PrivacyPolicy,CoppaFerpa}.tsx (REUSE, never re-implement, CLAUDE.md
 // step 7): composed from the SAME approved `LegalPage` frame + real copy, verbatim.
+// Terms (SC-008) follows the identical pattern — reused from
+// design/approved/screens/TermsOfService.tsx, verbatim (previously shipped as Wave-1 placeholder
+// copy; fixed here, no FR-ID — small content-correctness fix).
 import { Icon, LegalPage } from "@design/components"
 
 function SystemPage({ code, title, message }: { code?: string; title: string; message: string }) {
@@ -29,14 +32,42 @@ export function Maintenance() {
   return <SystemPage title="Down for maintenance" message="Youhue is briefly unavailable." />
 }
 
+// SC-008 — Terms of Service. Verbatim from design/approved/screens/TermsOfService.tsx.
 export function Terms() {
   return (
-    <div className="mx-auto max-w-2xl p-8 font-sans">
-      <h1 className="text-2xl font-black text-ink">Terms of Service</h1>
-      <p className="mt-4 text-neutral-700">
-        Placeholder terms — the final legal copy is provided at go-live.
+    <LegalPage title="Terms of Service" updated="Last updated July 2026">
+      <h4>Using the service</h4>
+      <p>
+        Student Wellbeing is a check-in tool provided to your school under an agreement with
+        your district or trust. By using it you agree to these terms. The service is intended
+        for classroom wellbeing check-ins only — it is not a diagnostic, medical, or emergency
+        service, and it does not replace a trained counsellor or a call to emergency services.
       </p>
-    </div>
+
+      <h4>School accounts &amp; rosters</h4>
+      <p>
+        Accounts are created and managed by your school. Staff sign in with a school-issued
+        email; students sign in without an email using a class code, name pick, or QR — no
+        student passwords are stored. Your school is responsible for keeping rosters accurate
+        and for removing staff and students who leave.
+      </p>
+
+      <h4>Acceptable use</h4>
+      <p>
+        You agree not to misuse the service: no attempting to access data outside your own
+        school, no scraping or bulk export beyond the tools we provide, and no using check-in
+        data to discipline or single out a student. Concerning responses are for support, not
+        sanction.
+      </p>
+
+      <h4>Liability</h4>
+      <p>
+        We provide the service &quot;as is&quot; and work hard to keep it available and
+        accurate, but we are not liable for indirect or consequential losses. Nothing in these
+        terms limits liability that cannot be limited by law. Your school&rsquo;s signed
+        agreement governs where these terms and it differ.
+      </p>
+    </LegalPage>
   )
 }
 
