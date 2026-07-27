@@ -21,6 +21,10 @@
  * grounding/stretch/brain_break; the real offered activity's `title` replaces the static "A
  * 2-minute reset" eyebrow label instead, so the student sees which actual activity was offered
  * without inventing copy the design/data don't provide.
+ *
+ * The approved screen's "You checked in ✓ / Nice one, {studentName}" greeting header is also
+ * DROPPED, same reason as `MoodScreen.tsx`'s own dropped greeting: no student display name is
+ * available anywhere on the FE today (`/me` returns `subject_id/kind/school_id/role` only).
  */
 import { Icon } from "@design/components"
 
