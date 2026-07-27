@@ -1,8 +1,8 @@
-/// <reference types="vitest/config" />
 import { fileURLToPath } from 'node:url'
 
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react()],
@@ -31,6 +31,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: './src/test/setup.ts',
+    // `worktrees/` holds Batch-03's per-ticket git worktrees, each a full nested checkout with its
+    // OWN `node_modules/react` install. Without this exclude, Vitest's default include glob picks up
+    // every sibling worktree's own test suite too, resolving `react` from multiple different install
+    // paths in one run -> mass "Cannot read properties of null (reading 'useState')" hook errors
+    // across unrelated files (same class of bug already fixed for mypy/ruff/eslint, A-8; found live
+    // blocking every FE lane's gate push, 2026-07-27 — see docs/KIT_ADAPTATIONS.md A-9).
+    exclude: [...configDefaults.exclude, '**/worktrees/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text-summary'],
