@@ -10,8 +10,12 @@ const NAV_BY_ROLE: Record<string, { label: string; to: string }[]> = {
   teacher: [
     { label: "Class dashboard", to: "/app/dashboard" },
     { label: "Invite colleague", to: "/app/roster/invite" },
+    { label: "Activities", to: "/app/activities" },
   ],
-  support: [{ label: "Shared class", to: "/app/dashboard" }],
+  support: [
+    { label: "Shared class", to: "/app/dashboard" },
+    { label: "Activities", to: "/app/activities" },
+  ],
   leadership: [
     { label: "Leadership overview", to: "/app/leadership" },
     { label: "Staff", to: "/app/leadership/staff" },

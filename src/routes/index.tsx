@@ -12,6 +12,7 @@ import {
 import { StaffAuthRoutes } from "../features/staff-auth/StaffAuthRoutes"
 import { effectiveRole, HOME_BY_ROLE, ROLE_ROUTES } from "../lib/roles"
 import { AcceptInviteApp } from "./accept-invite"
+import { ActivityRunAssignApp } from "./activities"
 import { CheckInApp } from "./checkin"
 import { InviteColleagueApp } from "./class-invitations"
 import { ClassDashboardApp } from "./dashboard"
@@ -128,6 +129,17 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.dashboard}>
               <RosterListApp />
+            </RequireRole>
+          }
+        />
+        {/* FR-14-02 — SC-046 run/assign a seed-set activity with the whole class or one student.
+            Same RequireRole gate as `dashboard`/`roster` (teacher/support own a class); the BE
+            additionally re-checks own/shared class scope per target (403) and same-school (403). */}
+        <Route
+          path="activities"
+          element={
+            <RequireRole allow={ROLE_ROUTES.dashboard}>
+              <ActivityRunAssignApp />
             </RequireRole>
           }
         />
