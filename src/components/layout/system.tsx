@@ -4,8 +4,8 @@
 // design/approved/screens/{PrivacyPolicy,CoppaFerpa}.tsx (REUSE, never re-implement, CLAUDE.md
 // step 7): composed from the SAME approved `LegalPage` frame + real copy, verbatim.
 // Terms (SC-008) follows the identical pattern — reused from
-// design/approved/screens/TermsOfService.tsx, verbatim (previously shipped as Wave-1 placeholder
-// copy; fixed here, no FR-ID — small content-correctness fix).
+// design/approved/screens/TermsOfService.tsx, verbatim (previously shipped as interim Wave-1
+// stand-in copy; fixed here, no FR-ID — small content-correctness fix).
 import { Icon, LegalPage } from "@design/components"
 
 function SystemPage({ code, title, message }: { code?: string; title: string; message: string }) {
