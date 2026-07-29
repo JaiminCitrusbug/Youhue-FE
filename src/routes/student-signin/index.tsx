@@ -4,9 +4,9 @@ import { Route, Routes, useNavigate, useSearchParams } from "react-router-dom"
 import { Banner, Icon } from "@design/components"
 
 import { useAuth } from "../../app/AuthContext"
-import { studentSignIn } from "./api"
+import { getStudentRoster, studentSignIn, type RosterEntry as ApiRosterEntry } from "./api"
 import { CodeScreen } from "./CodeScreen"
-import { NameScreen } from "./NameScreen"
+import { NameScreen, type RosterEntry } from "./NameScreen"
 import { QRScreen } from "./QRScreen"
 
 // FR-01-02 · Decision #4 — the student sign-in owns its OWN FE route module, isolable from the
@@ -76,6 +76,32 @@ export function StudentSignInApp() {
   const [qrToken, setQrToken] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [roster, setRoster] = useState<RosterEntry[]>([])
+  const [rosterLoading, setRosterLoading] = useState(false)
+
+  function toRoster(entries: ApiRosterEntry[]): RosterEntry[] {
+    return entries.map((s) => ({ id: s.id, name: s.display_name }))
+  }
+
+  // The real roster (FR-01-02's own GET /auth/student/roster) is fetched right before showing the
+  // picker — scoped by whichever credential (code or QR) the student already presented, same as
+  // sign-in itself will use. A fetch failure surfaces as a real error, never a silent fallback.
+  async function goToWho(nextCode: string | null, nextQrToken: string | null, replace = false) {
+    setError(null)
+    setRosterLoading(true)
+    navigate(WHO_PATH, { replace })
+    try {
+      const data = nextQrToken
+        ? await getStudentRoster({ qr_token: nextQrToken })
+        : await getStudentRoster({ school_or_class_code: nextCode ?? "" })
+      setRoster(toRoster(data.students))
+    } catch (e) {
+      setRoster([])
+      setError(e instanceof Error ? e.message : "Something went wrong. Please try again.")
+    } finally {
+      setRosterLoading(false)
+    }
+  }
 
   // A scanned class QR opens the app deep-linked with ?qr=<token>: adopt it (clearing any typed
   // code, so the two stay mutually exclusive) and go straight to name selection.
@@ -84,9 +110,10 @@ export function StudentSignInApp() {
     if (qr) {
       setQrToken(qr)
       setCode("")
-      navigate(WHO_PATH, { replace: true })
+      void goToWho(null, qr, true)
     }
-  }, [params, navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- goToWho is stable per render intent; re-running on identity would refetch on every render
+  }, [params])
 
   async function submit(studentId: string) {
     setSubmitting(true)
@@ -118,7 +145,7 @@ export function StudentSignInApp() {
                 setQrToken(null)
                 setError(null)
               }}
-              onContinue={() => navigate(WHO_PATH)}
+              onContinue={() => void goToWho(code, null)}
               onScanQR={() => navigate(SCAN_PATH)}
             />
           }
@@ -126,7 +153,15 @@ export function StudentSignInApp() {
         <Route path="scan" element={<QRScreen onBack={() => navigate(CODE_PATH)} onTypeCode={() => navigate(CODE_PATH)} />} />
         <Route
           path="who"
-          element={<NameScreen onConfirm={submit} onBack={() => navigate(CODE_PATH)} submitting={submitting} />}
+          element={
+            <NameScreen
+              onConfirm={submit}
+              onBack={() => navigate(CODE_PATH)}
+              submitting={submitting}
+              roster={roster}
+              classLabel={rosterLoading ? "Loading…" : undefined}
+            />
+          }
         />
       </Routes>
     </StudentSurface>

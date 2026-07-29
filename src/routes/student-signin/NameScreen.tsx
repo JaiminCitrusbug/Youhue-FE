@@ -31,38 +31,46 @@ const PRIMARY_ICON = "h-[18px] w-[18px]" // token-ok: approved Design-final-v3 v
 const SECONDARY = "flex items-center justify-center gap-2 py-2 text-[13.5px] font-semibold text-coral-600" // token-ok: approved Design-final-v3 value (do-not-restyle)
 const SECONDARY_ICON = "h-[16px] w-[16px]" // token-ok: approved Design-final-v3 value (do-not-restyle)
 
+// A real roster entry carries only what the BE actually returns (FR-01-02's
+// `GET /auth/student/roster`) — id + display_name. Initials/avatar tone are DISPLAY-ONLY,
+// computed here, never sent to or asserted by the server, so no fabricated data is stored.
 export interface RosterEntry {
   id: string
   name: string
-  initials: string
-  tone: string
+}
+
+// The approved screen's own avatar tone pairs (verbatim, theme-bound, do-not-restyle), cycled
+// deterministically by roster position so the same student always gets the same tone in one
+// render — purely a display convenience, not a claim about the student.
+const AVATAR_TONES = [
+  "bg-coral-50 text-coral-700",
+  "bg-status-okBg text-status-ok",
+  "bg-status-warnBg text-status-warn",
+  "bg-ink-50 text-ink-700",
+  "bg-neutral-100 text-neutral-600",
+  "bg-coral-100 text-coral-600",
+]
+
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return "?"
+  const first = parts[0]?.[0] ?? ""
+  const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : ""
+  return (first + last).toUpperCase()
 }
 
 export interface NameScreenProps {
   onConfirm: (studentId: string) => void
   onBack: () => void
-  roster?: RosterEntry[]
+  roster: RosterEntry[]
   classLabel?: string
   submitting?: boolean
 }
 
-// A class-roster fetch endpoint is NOT in this ticket's BE contract (only the sign-in POST). Until
-// a roster source exists (later ticket), the APPROVED roster stands in — names and avatar tones
-// verbatim from the approved screen (theme-bound utility pairs, no raw hex); each entry only gains
-// the id that is sent as `student_id`.
-const DEFAULT_ROSTER: RosterEntry[] = [
-  { id: "s-aisha", name: "Aisha K.", initials: "AK", tone: "bg-coral-50 text-coral-700" },
-  { id: "s-liam", name: "Liam O.", initials: "LO", tone: "bg-status-okBg text-status-ok" },
-  { id: "s-noah", name: "Noah P.", initials: "NP", tone: "bg-status-warnBg text-status-warn" },
-  { id: "s-zara", name: "Zara M.", initials: "ZM", tone: "bg-ink-50 text-ink-700" },
-  { id: "s-ethan", name: "Ethan R.", initials: "ER", tone: "bg-neutral-100 text-neutral-600" },
-  { id: "s-priya", name: "Priya S.", initials: "PS", tone: "bg-coral-100 text-coral-600" },
-]
-
 export function NameScreen({
   onConfirm,
   onBack,
-  roster = DEFAULT_ROSTER,
+  roster,
   classLabel = "Year 5 — Maple",
   submitting = false,
 }: NameScreenProps) {
@@ -92,6 +100,11 @@ export function NameScreen({
         {classLabel}
       </div>
 
+      {roster.length === 0 ? (
+        <p className="py-6 text-center text-[13.5px] text-neutral-500"> {/* token-ok: text-[13.5px] is this same screen's own approved size (CARD_NAME/SECONDARY above) */}
+          No students found for this code — ask your teacher.
+        </p>
+      ) : (
       <div className={GRID}>
         {roster.map((s, i) => {
           const on = selected === i
@@ -103,13 +116,17 @@ export function NameScreen({
               aria-pressed={on}
               className={`${CARD} ${on ? CARD_ON : CARD_OFF}`}
             >
-              <span className={`${AVATAR} ${s.tone}`}>{s.initials}</span>
+              <span className={`${AVATAR} ${AVATAR_TONES[i % AVATAR_TONES.length]}`}>
+                {initialsOf(s.name)}
+              </span>
               <b className={CARD_NAME}>{s.name}</b>
             </button>
           )
         })}
       </div>
+      )}
 
+      {roster.length > 0 ? (
       <div className={ACTIONS}>
         <button
           type="button"
@@ -124,6 +141,7 @@ export function NameScreen({
           Read names aloud
         </button>
       </div>
+      ) : null}
     </>
   )
 }

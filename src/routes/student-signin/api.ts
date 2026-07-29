@@ -18,6 +18,34 @@ export interface StudentSignInResponse {
   age_band: string
 }
 
+// FR-01-02 · GET /api/v1/auth/student/roster — the REAL name/avatar list for the picker screen
+// (SC-021), scoped by the same code/qr_token the student already entered. Public (pre-auth), same
+// posture as sign-in itself.
+export interface RosterEntry {
+  id: string
+  display_name: string
+}
+
+export interface RosterListResponse {
+  students: RosterEntry[]
+}
+
+export interface RosterQuery {
+  school_or_class_code?: string
+  qr_token?: string
+}
+
+export async function getStudentRoster(query: RosterQuery): Promise<RosterListResponse> {
+  const params = new URLSearchParams()
+  if (query.school_or_class_code) params.set("school_or_class_code", query.school_or_class_code)
+  if (query.qr_token) params.set("qr_token", query.qr_token)
+  const res = await fetch(`/api/v1/auth/student/roster?${params.toString()}`)
+  if (!res.ok) {
+    throw new Error(ERROR_BY_STATUS[res.status] ?? "Something went wrong. Please try again.")
+  }
+  return (await res.json()) as RosterListResponse
+}
+
 // Child-friendly copy per surfaced status. Errors are surfaced, never swallowed.
 const ERROR_BY_STATUS: Record<number, string> = {
   400: "That code didn't work — ask your teacher.",
