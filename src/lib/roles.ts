@@ -25,8 +25,8 @@ export const ROLE_ROUTES: Record<string, string[]> = {
   // as /risk/score) — every staff role that can see students' wellbeing signals may review the
   // triage queue, matching the approved screen's teacher-facing chrome plus leadership oversight.
   triage: ["teacher", "support", "leadership"],
-  // FR-18-03 (SC-054): the BE (`GET /notifications`) is any-staff-role, self-scoped (a recipient
-  // reads only their own feed) — every staff role that can receive an alert/invite/transactional
+  // FR-18-01 (SC-054): the BE (`GET /notifications`) is any-staff-role, self-scoped (a recipient
+  // sees only their own feed) — every staff role that can be a configured alert recipient or
   // notification may view their own notifications centre.
   notifications: ["teacher", "support", "leadership", "district"],
 }

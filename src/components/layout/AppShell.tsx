@@ -56,18 +56,16 @@ export function AppShell() {
       <div className="flex flex-1 flex-col">
         {/* topbar: bell THEN profile (owner-approved order); logout lives in the profile block */}
         <header className="flex items-center justify-end gap-2.5 border-b border-neutral-200 bg-surface px-6 py-3">
-          {/* Notifications surface is not built yet (no route/feature exists) — DEFERRED.
-              Rendered in an explicit disabled state so it is not an inert live control. */}
-          <button
-            type="button"
-            aria-label="Notifications (coming soon)"
-            aria-disabled="true"
-            disabled
-            title="Notifications — coming soon"
-            className="rounded-md p-2 text-neutral-400 cursor-not-allowed"
+          {/* FR-18-01 — the notifications centre (SC-054) now exists; the bell routes there for
+              real (previously an explicit disabled placeholder — never a dead control now). */}
+          <Link
+            to="/app/notifications"
+            aria-label="Notifications"
+            title="Notifications"
+            className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
           >
             <span aria-hidden>🔔</span>
-          </button>
+          </Link>
           <div className="flex items-center gap-2">
             <span className="text-sm text-neutral-600">{role ?? "staff"}</span>
             <button

@@ -1,10 +1,9 @@
 import { api } from "../../api/client"
 
-// FR-18-03 · GET /api/v1/notifications — the caller's own notification feed, each with its
-// per-channel delivery status (INFRA-05 transport + FR-18-03 reliability: confirmed, retried with
-// backoff, and surfaced — never silently lost). No FR-18-01 notifications-centre ticket exists yet
-// (this ticket structurally precedes it — see `Notifications.tsx` docstring), so this is the
-// minimal real read this ticket's own DoD needs: delivery failure/retry MUST be visible here.
+// FR-18-01 (SC-054 notifications centre) + FR-18-03 (delivery reliability) — the caller's own
+// notification feed, each with its per-channel delivery status (INFRA-05 transport + FR-18-03:
+// confirmed, retried with backoff, and surfaced — never silently lost) and its own read state
+// (FR-18-01: `read_at` null = unread; set in bulk by `markAllRead`).
 
 export type DeliveryChannel = "in_app" | "email"
 export type DeliveryStatus = "queued" | "sent" | "delivered" | "failed" | "retrying"
@@ -19,6 +18,7 @@ export interface NotificationItem {
   type: string
   payload: Record<string, unknown> | null
   created_at: string
+  read_at: string | null
   deliveries: Delivery[]
 }
 
@@ -31,4 +31,10 @@ export function notificationsErrorMessage(err: unknown): string {
 
 export async function listNotifications(): Promise<NotificationItem[]> {
   return api<NotificationItem[]>("/notifications")
+}
+
+// FR-18-01 (SC-054's `onMarkAllRead`): marks every unread notification in the caller's own feed
+// as read, in one server-side call — never a client-side-only/fake "read" state.
+export async function markAllRead(): Promise<{ marked: number }> {
+  return api<{ marked: number }>("/notifications/mark-all-read", { method: "POST" })
 }

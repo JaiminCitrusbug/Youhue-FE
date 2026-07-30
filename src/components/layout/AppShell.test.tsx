@@ -45,4 +45,17 @@ describe("AppShell (staff frame)", () => {
     expect(mocks.signOut).toHaveBeenCalled()
     expect(mocks.navigate).toHaveBeenCalledWith("/sign-in")
   })
+
+  // FR-18-01: the bell used to be an explicit disabled placeholder (no notifications feature
+  // existed) — it must now be a real link, never a dead/disabled control.
+  it("the notifications bell is a real link to the notifications centre, not a disabled placeholder", () => {
+    render(
+      <MemoryRouter>
+        <AppShell />
+      </MemoryRouter>,
+    )
+    const bell = screen.getByRole("link", { name: /notifications/i })
+    expect(bell).toHaveAttribute("href", "/app/notifications")
+    expect(bell).not.toHaveAttribute("aria-disabled")
+  })
 })

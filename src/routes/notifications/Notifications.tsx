@@ -1,29 +1,31 @@
 /**
- * SC-054 — Notifications centre (FR-18-03 · US-18-03). REUSES
- * `design/approved/screens/Notifications.tsx` in structure, copy and classes, composed from
+ * SC-054 — Notifications centre (FR-18-01 · US-18-01, folding in FR-18-03's delivery-status work).
+ * REUSES `design/approved/screens/Notifications.tsx` in structure, copy and classes, composed from
  * `@design/components`.
  *
  * Divergences from the approved screen — LOGGED, not silently reconciled:
  *  (a) No `<AppShell {...chrome('teacher', 'Notifications', ...)}>` wrapper — same reasoning
  *      already logged on every other screen in this codebase (the app's own routed shell wraps
  *      every `/app/*` route).
- *  (b) FR-18-03's own traceability line lists FR-18-01 (the notifications-centre ticket) under
- *      "Enables", meaning FR-18-03 structurally PRECEDES it — no FR-18-01 build exists yet to
- *      compose against. This screen is the minimal real read FR-18-03's own DoD requires ("the
- *      notifications surface shows a failed/retrying delivery state") — channel tabs / mark-all-
- *      read (the approved screen's `onChannel`/`onMarkAllRead` props) have no backing endpoint
- *      yet and are NOT reproduced as dead controls; a future FR-18-01 build adds them for real.
+ *  (b) FR-18-03 (delivery reliability) built a minimal version of this same screen first (its own
+ *      ticket structurally precedes this one) and explicitly deferred the approved screen's channel
+ *      tabs (`onChannel`) and "Mark all read" (`onMarkAllRead`) controls, since neither had a
+ *      backing endpoint yet (logged in that ticket's gate doc: "a future FR-18-01 build adds them
+ *      for real"). This ticket is that build: both are now wired to real behaviour — channel tabs
+ *      filter the already-fetched feed client-side (alert-type vs not, the same split already used
+ *      for the icon/tone below); "Mark all read" calls the new `POST /notifications/mark-all-read`
+ *      (FR-18-01) and updates the fetched read state from the real response, never a fake local flag.
  *  (c) The approved `NotifItem` shape (tone/icon/title/body/time/unread) has no delivery-status
- *      concept at all — this ticket's actual DoD is delivery reliability, so a delivery badge is
- *      added per item (the delta this ticket owns), derived from the real `deliveries[]` the BE
- *      returns, never fabricated.
+ *      concept — FR-18-03's delivery-status badge (derived from the real `deliveries[]`) is kept
+ *      here unchanged; this ticket's own delta is the read/unread dot (derived from the real
+ *      `read_at`, FR-18-01) and the channel tabs / mark-all-read wiring.
  */
-import { useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 
-import { Card, CardBody, EmptyState, Icon, PageHeader, Tag } from "@design/components"
+import { Button, Card, CardBody, EmptyState, Icon, PageHeader, Tag } from "@design/components"
 
 import {
-  listNotifications, notificationsErrorMessage, type NotificationItem,
+  listNotifications, markAllRead, notificationsErrorMessage, type NotificationItem,
 } from "./api"
 
 const ICON_SQUARE = {
@@ -32,6 +34,23 @@ const ICON_SQUARE = {
   ink: "bg-ink-50 text-ink",
 } as const
 
+interface ChannelDef { key: "all" | "alerts" | "email"; label: string; icon?: ReactNode }
+
+const CHANNELS: ChannelDef[] = [
+  { key: "all", label: "All" },
+  { key: "alerts", label: "Alerts", icon: <Icon.Alert /> },
+  { key: "email", label: "Email log", icon: <Icon.Mail /> },
+]
+
+function isAlert(n: NotificationItem): boolean {
+  return n.type.includes("alert")
+}
+
+function matchesChannel(n: NotificationItem, channel: ChannelDef["key"]): boolean {
+  if (channel === "all") return true
+  return channel === "alerts" ? isAlert(n) : !isAlert(n)
+}
+
 function toneFor(n: NotificationItem): keyof typeof ICON_SQUARE {
   if (n.deliveries.some((d) => d.status === "failed")) return "danger"
   if (n.deliveries.some((d) => d.status === "retrying")) return "ink"
@@ -39,7 +58,7 @@ function toneFor(n: NotificationItem): keyof typeof ICON_SQUARE {
 }
 
 function iconFor(n: NotificationItem) {
-  return n.type.includes("alert") ? <Icon.Alert /> : <Icon.Mail />
+  return isAlert(n) ? <Icon.Alert /> : <Icon.Mail />
 }
 
 function bodyFor(n: NotificationItem): string {
@@ -53,7 +72,7 @@ function timeFor(iso: string): string {
   })
 }
 
-/** Never a silent gap (ticket DoD): a failed/retrying EMAIL delivery is called out explicitly. */
+/** Never a silent gap (FR-18-03 DoD): a failed/retrying EMAIL delivery is called out explicitly. */
 function deliveryBadge(n: NotificationItem) {
   const email = n.deliveries.find((d) => d.channel === "email")
   if (!email) return null
@@ -69,6 +88,11 @@ function deliveryBadge(n: NotificationItem) {
 export function Notifications() {
   const [items, setItems] = useState<NotificationItem[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [channel, setChannel] = useState<ChannelDef["key"]>("all")
+  const [marking, setMarking] = useState(false)
+  // Separate from the load `error` (which replaces the whole list with a full EmptyState) — a
+  // failed mark-all-read must not claim the feed "could not be loaded" when it clearly did.
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     listNotifications()
@@ -77,25 +101,64 @@ export function Notifications() {
   }, [])
 
   const loading = items === null && !error
+  const unreadCount = items ? items.filter((n) => n.read_at === null).length : 0
+  const visible = items ? items.filter((n) => matchesChannel(n, channel)) : []
+
+  function handleMarkAllRead() {
+    setMarking(true)
+    setActionError(null)
+    markAllRead()
+      .then(() => {
+        const now = new Date().toISOString()
+        setItems((prev) => (prev ? prev.map((n) => (n.read_at === null ? { ...n, read_at: now } : n)) : prev))
+      })
+      .catch((e: unknown) => setActionError(notificationsErrorMessage(e)))
+      .finally(() => setMarking(false))
+  }
 
   return (
     <>
       <PageHeader
         crumb="In-app push + email — the only two channels"
         title="Notifications"
-        sub={items ? `${items.length} total` : undefined}
+        sub={items ? `${unreadCount} unread` : undefined}
+        right={
+          <Button
+            variant="ghost"
+            icon={<Icon.CheckCircle />}
+            onClick={handleMarkAllRead}
+            disabled={marking || unreadCount === 0}
+          >
+            Mark all read
+          </Button>
+        }
       />
+
+      {/* channel tabs — FR-18-01 delta: real client-side filter over the already-fetched feed */}
+      <div className="mb-3.5 flex flex-wrap gap-1.5">
+        {CHANNELS.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => setChannel(c.key)}
+            className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-[12px] font-semibold [&_svg]:h-[13px] [&_svg]:w-[13px] ${c.key === channel ? "bg-ink text-white" : "border border-neutral-200 bg-surface text-neutral-600"}`} // token-ok: approved value, verbatim from screens/Notifications.tsx:72 (do-not-restyle)
+          >
+            {c.icon}{c.label}
+          </button>
+        ))}
+      </div>
+
+      {actionError && <p className="mb-3 text-xs text-status-danger">{actionError}</p>}
 
       <Card>
         <CardBody flush>
           {loading && <EmptyState title="Loading notifications…" />}
           {error && <EmptyState icon={<Icon.Alert />} title="Notifications could not be loaded">{error}</EmptyState>}
-          {items && items.length === 0 && (
+          {items && visible.length === 0 && (
             <EmptyState icon={<Icon.CheckCircle />} title="Nothing here yet">
-              You have no notifications.
+              {channel === "all" ? "You have no notifications." : "Nothing in this channel yet."}
             </EmptyState>
           )}
-          {items?.map((n) => (
+          {visible.map((n) => (
             <div key={n.id} className="flex items-start gap-3 border-b border-neutral-100 px-4 py-3 last:border-0">
               <span className={`grid h-[34px] w-[34px] shrink-0 place-items-center rounded-md [&_svg]:h-[17px] [&_svg]:w-[17px] ${ICON_SQUARE[toneFor(n)]}`}> {/* token-ok: approved value, verbatim from screens/Notifications.tsx:84 (do-not-restyle) */}
                 {iconFor(n)}
@@ -108,6 +171,7 @@ export function Notifications() {
               <span className="whitespace-nowrap text-[11px] font-medium text-neutral-400"> {/* token-ok: approved value, verbatim from screens/Notifications.tsx:91 (do-not-restyle) */}
                 {timeFor(n.created_at)}
               </span>
+              {n.read_at === null && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-coral" />}
             </div>
           ))}
         </CardBody>

@@ -167,9 +167,12 @@ export function AppRoutes() {
             </RequireRole>
           }
         />
-        {/* FR-18-03 — SC-054 notifications centre: the caller's own feed with per-channel
-            delivery status (failed/retrying surfaced, never a silent gap). Any-staff-role,
-            self-scoped (same posture as the BE's GET /notifications). */}
+        {/* FR-18-01 — SC-054 notifications centre: the caller's own feed with per-channel delivery
+            status (failed/retrying surfaced, never a silent gap — FR-18-03) plus channel tabs +
+            mark-all-read (this ticket's delta). Any-staff-role, self-scoped (same posture as the
+            BE's GET /notifications). Wires the shell's bell icon, previously an explicit disabled
+            placeholder (`components/layout/AppShell.tsx`) — never a dead control now that the
+            screen is real. */}
         <Route
           path="notifications"
           element={
