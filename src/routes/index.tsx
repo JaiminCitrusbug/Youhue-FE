@@ -171,7 +171,7 @@ export function AppRoutes() {
             status (failed/retrying surfaced, never a silent gap — FR-18-03) plus channel tabs +
             mark-all-read (this ticket's delta). Any-staff-role, self-scoped (same posture as the
             BE's GET /notifications). Wires the shell's bell icon, previously an explicit disabled
-            placeholder (`components/layout/AppShell.tsx`) — never a dead control now that the
+            stand-in (`components/layout/AppShell.tsx`) — never a dead control now that the
             screen is real. */}
         <Route
           path="notifications"

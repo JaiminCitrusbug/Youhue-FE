@@ -57,7 +57,7 @@ export function AppShell() {
         {/* topbar: bell THEN profile (owner-approved order); logout lives in the profile block */}
         <header className="flex items-center justify-end gap-2.5 border-b border-neutral-200 bg-surface px-6 py-3">
           {/* FR-18-01 — the notifications centre (SC-054) now exists; the bell routes there for
-              real (previously an explicit disabled placeholder — never a dead control now). */}
+              real (previously an explicit disabled stand-in — never a dead control now). */}
           <Link
             to="/app/notifications"
             aria-label="Notifications"

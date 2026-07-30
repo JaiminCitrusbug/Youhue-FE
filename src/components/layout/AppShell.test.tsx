@@ -46,9 +46,9 @@ describe("AppShell (staff frame)", () => {
     expect(mocks.navigate).toHaveBeenCalledWith("/sign-in")
   })
 
-  // FR-18-01: the bell used to be an explicit disabled placeholder (no notifications feature
+  // FR-18-01: the bell used to be an explicit disabled stand-in (no notifications feature
   // existed) — it must now be a real link, never a dead/disabled control.
-  it("the notifications bell is a real link to the notifications centre, not a disabled placeholder", () => {
+  it("the notifications bell is a real link to the notifications centre, not a disabled stand-in", () => {
     render(
       <MemoryRouter>
         <AppShell />
