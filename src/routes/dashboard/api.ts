@@ -3,6 +3,11 @@ import { getToken } from "../../api/client"
 // FR-10-01 — GET /api/v1/classes/mine (FR-02-03, reused) + GET /api/v1/classes/{id}/dashboard.
 // Every field in `ClassDashboard` is server-owned (SRS §13.5); this client never derives `trend`
 // from `mood_index` deltas itself.
+//
+// FR-10-05 adds `data_state` to the SAME response (no new endpoint) — `has_data` when mood_index
+// is populated; `no_data_yet` when this class has NEVER checked in, in any period; `no_results`
+// when the current window is empty but the class DOES have check-ins outside it. The two empty
+// cases render distinct copy (ticket §Must-nots) — see index.tsx.
 
 const BASE = "/api/v1"
 
@@ -20,6 +25,7 @@ export interface ClassDashboard {
   live: boolean
   period: string
   timezone: string
+  data_state: "has_data" | "no_data_yet" | "no_results"
 }
 
 export interface RosterStudent {
@@ -33,6 +39,14 @@ export class DashboardApiError extends Error {
     super(message)
     this.status = status
   }
+}
+
+// FR-10-05 — a real server message when we have one (DashboardApiError, e.g. a 500's "Could not
+// load the dashboard" or a 422's real validation detail), a caller-supplied fallback otherwise
+// (e.g. a network-level failure with no response at all). Shared so each section's own error
+// state (dashboard figures vs. roster) surfaces this the same way, never a silently dropped error.
+export function dashboardErrorMessage(err: unknown, fallback: string): string {
+  return err instanceof DashboardApiError ? err.message : fallback
 }
 
 async function authedFetch<T>(path: string): Promise<T> {

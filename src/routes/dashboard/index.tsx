@@ -7,7 +7,7 @@ import {
 } from "@design/components"
 
 import {
-  getClassDashboard, getClassRoster, getMyClasses, DashboardApiError,
+  getClassDashboard, getClassRoster, getMyClasses, dashboardErrorMessage,
   type ClassDashboard, type RosterStudent,
 } from "./api"
 
@@ -40,8 +40,23 @@ import {
 // forms.tsx — the approved screen has no filter control to copy, so this composes the SAME
 // primitive InviteColleague.tsx/ConcernWords.tsx already use for a form control) plus a native
 // date `Input` for "around a specific date" (Scenario 2) — selecting either re-fetches the real
-// `range=` query, never re-derives the currently-shown figures from the prior fetch. FR-10-05
-// (empty/loading/error polish) extends this screen later.
+// `range=` query, never re-derives the currently-shown figures from the prior fetch.
+//
+// FR-10-05 ADDS real empty/loading/error states, each SECTION independently (ticket DoD: "Each
+// list/section shows its own empty, loading and error states"):
+//  - The class-picker bootstrap (`getMyClasses`) keeps ONE page-level loading/error/no-classes
+//    gate — there is nothing else to show before we even know which class this is.
+//  - Once a class is known, the mood-index tile and the roster table fetch INDEPENDENTLY (no
+//    `Promise.all`) so a failure in one never blanks the other — a real per-section error state,
+//    not a shared one.
+//  - The mood-index tile itself now branches on the server-owned `data_state`
+//    (`has_data|no_data_yet|no_results`): `no_data_yet` ("this class has never checked in") and
+//    `no_results` ("a filter matched nothing though data exists") render DISTINCT copy — ticket
+//    §Must-nots forbids the two sharing copy (Scenarios 1 & 2).
+//  - A 500 (or any unexpected failure) surfaces as a scoped `Banner` in the failing section only —
+//    never a crash, never silently dropped (ticket §Must-nots) — reusing the SAME
+//    `dashboardErrorMessage`/`DashboardApiError` plumbing FR-10-03's range-filter errors already
+//    established (a real server detail when there is one, a generic fallback otherwise).
 //
 // CLASS SELECTION — not in this ticket's scope (no class-picker screen exists yet; "drill into a
 // student"/multi-class UX is FR-10-02/03's job). Reuses FR-02-03's existing `GET /classes/mine`
@@ -74,23 +89,47 @@ const RANGE_OPTIONS = [
 
 export function ClassDashboardApp() {
   const navigate = useNavigate()
+
+  // Page-level bootstrap: which class are we even showing?
   const [classId, setClassId] = useState<string | null>(null)
-  const [dash, setDash] = useState<ClassDashboard | null>(null)
-  const [roster, setRoster] = useState<RosterStudent[] | null>(null)
+  const [className, setClassName] = useState<string>("")
+  const [classesLoading, setClassesLoading] = useState(true)
+  const [classesError, setClassesError] = useState<string | null>(null)
   const [noClasses, setNoClasses] = useState(false)
-  const [loadError, setLoadError] = useState<string | null>(null)
+
+  // Section 1: mood-index figures (FR-10-01/03) — own loading/error, driven by `data_state`.
+  const [dash, setDash] = useState<ClassDashboard | null>(null)
+  const [dashLoading, setDashLoading] = useState(false)
+  const [dashError, setDashError] = useState<string | null>(null)
+
+  // Section 2: roster table (FR-10-02) — independent of the mood-index fetch/filter.
+  const [roster, setRoster] = useState<RosterStudent[] | null>(null)
+  const [rosterLoading, setRosterLoading] = useState(false)
+  const [rosterError, setRosterError] = useState<string | null>(null)
+
   const [range, setRange] = useState<string>("this_week")
   const [aroundDate, setAroundDate] = useState("")
 
   const loadDashboard = useCallback((id: string, r: string) => {
-    setLoadError(null)
+    setDashLoading(true)
+    setDashError(null)
     getClassDashboard(id, r === "this_week" ? undefined : r)
       .then((d) => setDash(d))
       .catch((e: unknown) => {
-        setLoadError(
-          e instanceof DashboardApiError ? e.message : "Couldn't load the dashboard. Please try again.",
-        )
+        setDashError(dashboardErrorMessage(e, "Couldn't load the dashboard. Please try again."))
       })
+      .finally(() => setDashLoading(false))
+  }, [])
+
+  const loadRoster = useCallback((id: string) => {
+    setRosterLoading(true)
+    setRosterError(null)
+    getClassRoster(id)
+      .then((r) => setRoster(r))
+      .catch((e: unknown) => {
+        setRosterError(dashboardErrorMessage(e, "Couldn't load the class roster. Please try again."))
+      })
+      .finally(() => setRosterLoading(false))
   }, [])
 
   useEffect(() => {
@@ -102,24 +141,22 @@ export function ClassDashboardApp() {
           setNoClasses(true)
           return
         }
-        const id = classes[0].id
-        setClassId(id)
-        return Promise.all([getClassDashboard(id, undefined), getClassRoster(id)]).then(([d, r]) => {
-          if (cancelled) return
-          setDash(d)
-          setRoster(r)
-        })
+        setClassId(classes[0].id)
+        setClassName(classes[0].name)
+        loadDashboard(classes[0].id, "this_week")
+        loadRoster(classes[0].id)
       })
       .catch((e: unknown) => {
         if (cancelled) return
-        setLoadError(
-          e instanceof DashboardApiError ? e.message : "Couldn't load the dashboard. Please try again.",
-        )
+        setClassesError(dashboardErrorMessage(e, "Couldn't load your classes. Please try again."))
+      })
+      .finally(() => {
+        if (!cancelled) setClassesLoading(false)
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [loadDashboard, loadRoster])
 
   function onRangeChange(value: string) {
     setRange(value)
@@ -135,11 +172,14 @@ export function ClassDashboardApp() {
     }
   }
 
-  if (loadError) {
+  if (classesLoading) {
+    return <EmptyState title="Loading your class dashboard…" />
+  }
+  if (classesError) {
     return (
       <div role="alert">
         <Banner tone="danger" icon={<Icon.Alert />}>
-          {loadError}
+          {classesError}
         </Banner>
       </div>
     )
@@ -151,15 +191,16 @@ export function ClassDashboardApp() {
       </EmptyState>
     )
   }
-  if (dash === null) return <EmptyState title="Loading your class dashboard…" />
 
-  const asOfLabel = `${dash.period.replace("_", " ")} · ${dash.live ? "Live" : "as of"} ${new Date(
-    dash.as_of,
-  ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${dash.timezone}`
+  const asOfLabel = dash
+    ? `${dash.period.replace("_", " ")} · ${dash.live ? "Live" : "as of"} ${new Date(
+        dash.as_of,
+      ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · ${dash.timezone}`
+    : undefined
 
   return (
     <>
-      <PageHeader crumb="My classes" title={dash.class_name} sub={asOfLabel} />
+      <PageHeader crumb="My classes" title={dash?.class_name ?? className} sub={asOfLabel} />
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field label="Time range">
           <Select
@@ -181,25 +222,65 @@ export function ClassDashboardApp() {
           />
         </Field>
       </div>
+
+      {/* Section 1: mood-index figures — its own loading/empty/error, distinct no_data_yet vs
+          no_results copy (FR-10-05 Scenarios 1 & 2). */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <StatTile
-          label="Class mood index"
-          icon={<Icon.Heart />}
-          value={dash.mood_index ?? "—"}
-          unit={dash.mood_index !== null ? "/ 10" : undefined}
-          delta={
-            <Trend dir={dash.trend}>
-              {trendIcon(dash.trend)}
-              {trendLabel(dash.trend)}
-            </Trend>
-          }
-        />
+        {dashLoading ? (
+          <div className="sm:col-span-3">
+            <EmptyState title="Loading your dashboard figures…" />
+          </div>
+        ) : dashError ? (
+          <div className="sm:col-span-3" role="alert">
+            <Banner tone="danger" icon={<Icon.Alert />}>
+              {dashError}
+            </Banner>
+          </div>
+        ) : dash && dash.data_state === "no_data_yet" ? (
+          <div className="sm:col-span-3">
+            <EmptyState icon={<Icon.Heart />} title="No check-ins yet">
+              This class hasn't checked in for this period yet.
+            </EmptyState>
+          </div>
+        ) : dash && dash.data_state === "no_results" ? (
+          <div className="sm:col-span-3">
+            <EmptyState icon={<Icon.Search />} title="No results for this filter">
+              No check-ins match this time range — try a different period to see this class's data.
+            </EmptyState>
+          </div>
+        ) : dash ? (
+          <StatTile
+            label="Class mood index"
+            icon={<Icon.Heart />}
+            value={dash.mood_index ?? "—"}
+            unit={dash.mood_index !== null ? "/ 10" : undefined}
+            delta={
+              <Trend dir={dash.trend}>
+                {trendIcon(dash.trend)}
+                {trendLabel(dash.trend)}
+              </Trend>
+            }
+          />
+        ) : null}
       </div>
 
+      {/* Section 2: roster table — its own loading/empty/error, independent of the range filter. */}
       <Card>
-        <CardHeader icon={<Icon.Users />} title="Students" hint={`${roster?.length ?? 0} in this class`} />
-        <CardBody flush={(roster?.length ?? 0) > 0}>
-          {roster && roster.length === 0 ? (
+        <CardHeader
+          icon={<Icon.Users />}
+          title="Students"
+          hint={roster ? `${roster.length} in this class` : undefined}
+        />
+        <CardBody flush={!rosterLoading && !rosterError && (roster?.length ?? 0) > 0}>
+          {rosterLoading ? (
+            <EmptyState title="Loading students…" />
+          ) : rosterError ? (
+            <div role="alert">
+              <Banner tone="danger" icon={<Icon.Alert />}>
+                {rosterError}
+              </Banner>
+            </div>
+          ) : roster && roster.length === 0 ? (
             <EmptyState icon={<Icon.Users />} title="No students yet">
               Students will appear here once they are added to this class.
             </EmptyState>

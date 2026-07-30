@@ -43,6 +43,7 @@ const DASH: ClassDashboard = {
   live: true,
   period: "this_week",
   timezone: "Europe/London",
+  data_state: "has_data",
 }
 const ROSTER: RosterStudent[] = [
   { id: "s1", display_name: "Amy" },
@@ -114,11 +115,11 @@ describe("ClassDashboardApp (FR-10-01 · SC-027, FR-10-02 roster delta)", () => 
     expect(sub).toBeInTheDocument()
   })
 
-  it("shows a flat trend with a dash, never fabricating a direction, when no check-ins exist yet", async () => {
-    dashboardMock.mockResolvedValue({ ...DASH, mood_index: null, trend: "flat" })
+  it("shows the distinct 'no data yet' empty state, never a fabricated trend, when no check-ins exist yet (superseded by FR-10-05's data_state)", async () => {
+    dashboardMock.mockResolvedValue({ ...DASH, mood_index: null, trend: "flat", data_state: "no_data_yet" })
     renderGated()
-    expect(await screen.findByText("—")).toBeInTheDocument()
-    expect(screen.getByText("Flat vs last period")).toBeInTheDocument()
+    expect(await screen.findByText("No check-ins yet")).toBeInTheDocument()
+    expect(screen.queryByText("Flat vs last period")).not.toBeInTheDocument()
   })
 
   it("shows a real empty state when the teacher has no classes at all", async () => {
@@ -237,6 +238,73 @@ describe("ClassDashboardApp (FR-10-01 · SC-027, FR-10-02 roster delta)", () => 
       await userEvent.selectOptions(select, "term")
 
       expect(await screen.findByRole("alert")).toHaveTextContent(/range must be one of/i)
+    })
+  })
+
+  describe("FR-10-05 — empty/loading/error states, each section on its own", () => {
+    it("Scenario 1 — shows a distinct 'no data yet' state when the class has no check-ins for the period", async () => {
+      dashboardMock.mockResolvedValue({ ...DASH, mood_index: null, trend: "flat", data_state: "no_data_yet" })
+      renderGated()
+      expect(await screen.findByText("No check-ins yet")).toBeInTheDocument()
+    })
+
+    it("Scenario 2 — shows a distinct 'no results' state when a filter matches nothing though data exists", async () => {
+      dashboardMock.mockResolvedValue({ ...DASH, mood_index: null, trend: "flat", data_state: "no_results" })
+      renderGated()
+      expect(await screen.findByText("No results for this filter")).toBeInTheDocument()
+    })
+
+    it("shows a real loading state for the mood-index section before the dashboard fetch resolves", async () => {
+      let resolveDash: (d: ClassDashboard) => void = () => {}
+      dashboardMock.mockReturnValue(new Promise<ClassDashboard>((resolve) => { resolveDash = resolve }))
+      renderGated()
+
+      expect(await screen.findByText("Loading your dashboard figures…")).toBeInTheDocument()
+
+      resolveDash(DASH)
+      expect(await screen.findByText("8")).toBeInTheDocument()
+      expect(screen.queryByText("Loading your dashboard figures…")).not.toBeInTheDocument()
+    })
+
+    it("shows a real loading state for the students section before the roster fetch resolves", async () => {
+      let resolveRoster: (r: RosterStudent[]) => void = () => {}
+      rosterMock.mockReturnValue(new Promise<RosterStudent[]>((resolve) => { resolveRoster = resolve }))
+      renderGated()
+
+      expect(await screen.findByText("Loading students…")).toBeInTheDocument()
+
+      resolveRoster(ROSTER)
+      expect(await screen.findByText("Amy")).toBeInTheDocument()
+      expect(screen.queryByText("Loading students…")).not.toBeInTheDocument()
+    })
+
+    it("a failed dashboard fetch shows a scoped error banner without wiping the (independently loaded) roster", async () => {
+      dashboardMock.mockRejectedValue(
+        new (await import("./api")).DashboardApiError(500, "Could not load the dashboard"),
+      )
+      renderGated()
+
+      expect(await screen.findByRole("alert")).toHaveTextContent("Could not load the dashboard")
+      // the roster section fetched independently and is unaffected — never a crash, never blanked.
+      expect(await screen.findByText("Amy")).toBeInTheDocument()
+      expect(screen.getByText("Ben")).toBeInTheDocument()
+    })
+
+    it("a failed roster fetch shows a scoped error banner without wiping the (independently loaded) mood index", async () => {
+      rosterMock.mockRejectedValue(
+        new (await import("./api")).DashboardApiError(500, "Could not load the dashboard"),
+      )
+      renderGated()
+
+      expect(await screen.findByText("8")).toBeInTheDocument()  // mood index still rendered
+      expect(await screen.findByRole("alert")).toHaveTextContent("Could not load the dashboard")
+    })
+
+    it("a network-level failure (no DashboardApiError) falls back to generic copy, never a raw/blank crash", async () => {
+      dashboardMock.mockRejectedValue(new Error("network down"))
+      renderGated()
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(/couldn't load the dashboard/i)
     })
   })
 })

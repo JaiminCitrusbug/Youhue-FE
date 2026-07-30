@@ -32,6 +32,7 @@ describe("dashboard client (FR-10-01)", () => {
       jsonResponse(200, {
         class_id: "c1", class_name: "3A", mood_index: 7.2, trend: "down",
         as_of: "2026-07-22T09:10:00Z", live: true, period: "this_week", timezone: "UTC",
+        data_state: "has_data",
       }),
     )
     vi.stubGlobal("fetch", fetchMock)
@@ -41,6 +42,7 @@ describe("dashboard client (FR-10-01)", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/v1/classes/c1/dashboard", expect.anything())
     expect(res.mood_index).toBe(7.2)
     expect(res.trend).toBe("down")
+    expect(res.data_state).toBe("has_data")  // FR-10-05: server-owned, rendered as-is
   })
 
   it("surfaces the REAL server detail + status on a non-2xx response (e.g. 403 cross-scope)", async () => {
