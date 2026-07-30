@@ -30,6 +30,7 @@ import { LeadershipConsentApp } from "./leadership-consent"
 import { AccessWindow } from "./leadership/AccessWindow"
 import { AlertRouting } from "./leadership/AlertRouting"
 import { ConcernWords } from "./leadership/ConcernWords"
+import { DataDeletionScreen } from "./leadership/DataDeletionScreen"
 import { DataExportScreen } from "./leadership/DataExportScreen"
 import { StaffManagement } from "./leadership/StaffManagement"
 import { TriageQueue } from "./leadership/TriageQueue"
@@ -242,6 +243,18 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.leadership}>
               <DataExportScreen />
+            </RequireRole>
+          }
+        />
+        {/* FR-20-02 — SC-065 school data deletion (export-then-hard-delete on exit). Same
+            RequireRole gate as `leadership/export`; the BE additionally re-checks the `leadership`
+            role AND own-school scope, and refuses the delete step (409) until the export it
+            reuses (FR-20-01's machinery) is ready. */}
+        <Route
+          path="leadership/export-and-delete"
+          element={
+            <RequireRole allow={ROLE_ROUTES.leadership}>
+              <DataDeletionScreen />
             </RequireRole>
           }
         />
