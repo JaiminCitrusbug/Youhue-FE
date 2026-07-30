@@ -73,3 +73,24 @@ export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   if (!res.ok) throw new Error(`request failed: ${res.status}`)
   return (await res.json()) as T
 }
+
+/**
+ * Same request/auth contract as `api()`, but resolves the raw `Blob` instead of parsing JSON —
+ * for a file download (FR-20-05's CSV audit-log export). No `Content-Type` request header (a GET
+ * download sends no body); the response's own content-type/disposition drive the browser save.
+ */
+export async function apiBlob(path: string, opts: RequestInit = {}): Promise<Blob> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...opts,
+    headers: {
+      ...(_token ? { Authorization: `Bearer ${_token}` } : {}),
+      ...(opts.headers ?? {}),
+    },
+  })
+  if (res.status === 401) {
+    _token = null
+    _authFailureListeners.forEach((l) => l())
+  }
+  if (!res.ok) throw new Error(`request failed: ${res.status}`)
+  return res.blob()
+}

@@ -18,6 +18,7 @@ import { InviteColleagueApp } from "./class-invitations"
 import { ClassDashboardApp } from "./dashboard"
 import { StudentDetailApp } from "./student-detail"
 import { Notifications } from "./notifications/Notifications"
+import { AuditLog } from "./admin-console/audit-log/AuditLog"
 import { SeedActivities } from "./admin-console/seed-activities/SeedActivities"
 import { AdminStats } from "./admin-console/stats/AdminStats"
 import { SchoolAccounts } from "./admin-console/schools/SchoolAccounts"
@@ -342,6 +343,17 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.admin}>
               <SchoolSupport />
+            </RequireRole>
+          }
+        />
+        {/* FR-20-05 — SC-080 audit-log viewer: filter + table + Export over the platform-wide,
+            immutable audit trail. Same RequireRole gate; the BE additionally enforces the
+            `view_audit_log` RBAC permission. Read-only — no edit/delete affordance. */}
+        <Route
+          path="admin/audit-log"
+          element={
+            <RequireRole allow={ROLE_ROUTES.admin}>
+              <AuditLog />
             </RequireRole>
           }
         />
