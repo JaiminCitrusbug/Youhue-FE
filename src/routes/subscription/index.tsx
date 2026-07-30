@@ -1,5 +1,5 @@
 /**
- * SC-085 — Subscription (FR-17-01). REUSES `design/approved/screens/Subscription.tsx`'s
+ * SC-085 — Subscription (FR-17-01, FR-17-04). REUSES `design/approved/screens/Subscription.tsx`'s
  * structure/classes for the header + KV row (tier/trial), composed from `@design/components`.
  *
  * Divergence from the approved screen — LOGGED, not silently reconciled: the approved preview
@@ -7,9 +7,18 @@
  * feature-list UI at all. This ticket's actual DoD is the entitlement engine + "the Subscription
  * screen that lists exactly what each tier includes" — so the feature list below is new UI built
  * from the SAME primitive set (Card/CardHeader/CardBody), not copied from any approved markup
- * (none exists for it). The static pricing table and "Upgrade to Premium" button are NOT built
- * here — Premium enablement (FR-17-03/04) and pricing/billing are explicitly other tickets; this
- * screen only renders what `GET /entitlements` actually returns (`{tier, features[]}`).
+ * (none exists for it). The static pricing table is NOT built here — pricing/billing (FR-17-06) is
+ * a separate, not-yet-built ticket; this screen only renders what `GET /entitlements` actually
+ * returns (`{tier, features[]}`).
+ *
+ * FR-17-04 addition (GATE G-11): when the resolved tier is Free, render the "buy Premium to
+ * unlock" prompt the approved screen's header button gestures at (`Icon.ArrowUp` "Upgrade to
+ * Premium") — as an informational `Banner`, not a button: FR-17-06 (the quote-based
+ * upgrade/pricing flow this button would need to route to) is not built yet, and a button with no
+ * real destination would be a dead control (forbidden). `GET /entitlements` (FR-17-01, unmodified
+ * by this ticket) carries no "was this school ever Premium" flag, so the prompt is phrased to be
+ * literally true for every Free-tier school whether or not it has retained Premium data ("any
+ * Premium data you've created" — an empty set for a school that never had any).
  */
 import { useCallback, useEffect, useState } from "react"
 
@@ -63,6 +72,13 @@ export function SubscriptionApp() {
         </p>
       ) : data ? (
         <>
+          {data.tier === "free" && (
+            <Banner tone="info" icon={<Icon.Lock />}>
+              Buy Premium to unlock advanced features — any Premium data you&apos;ve created stays
+              safe and read-only until you upgrade.
+            </Banner>
+          )}
+
           <div className="mb-4 grid grid-cols-1 gap-3">
             <KV label="Tier">{data.tier === "premium" ? "Premium" : "Free"}</KV>
           </div>

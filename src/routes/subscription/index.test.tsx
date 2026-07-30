@@ -55,6 +55,23 @@ describe("SubscriptionApp (FR-17-01 · SC-085)", () => {
     expect(screen.getByText("Roster sync")).toBeInTheDocument()
   })
 
+  // ---- FR-17-04 (GATE G-11): Free-tier "buy Premium to unlock" prompt --------------------------
+
+  it("renders the 'buy Premium to unlock' prompt on the Free tier (retained-data upgrade prompt)", async () => {
+    getMock.mockResolvedValue(FREE)
+    render(<SubscriptionApp />)
+    await screen.findByText("Free")
+    expect(screen.getByText(/buy premium to unlock/i)).toBeInTheDocument()
+    expect(screen.getByText(/read-only until you upgrade/i)).toBeInTheDocument()
+  })
+
+  it("never renders the upgrade prompt on the Premium tier", async () => {
+    getMock.mockResolvedValue(PREMIUM)
+    render(<SubscriptionApp />)
+    await screen.findByText("Premium")
+    expect(screen.queryByText(/buy premium to unlock/i)).not.toBeInTheDocument()
+  })
+
   it("renders an unmapped feature key verbatim rather than dropping it silently", async () => {
     getMock.mockResolvedValue({ tier: "free", features: ["some_future_feature"] })
     render(<SubscriptionApp />)
