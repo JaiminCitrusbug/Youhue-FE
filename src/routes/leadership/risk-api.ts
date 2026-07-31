@@ -30,3 +30,28 @@ export interface FlagTimelineEvent {
 export async function getFlagEvents(flagId: string): Promise<{ events: FlagTimelineEvent[] }> {
   return api<{ events: FlagTimelineEvent[] }>(`/flags/${flagId}/events`)
 }
+
+// FR-12-08 (GATE G-8) · POST /api/v1/alerts/{flagId}/acknowledge — records that a configured
+// adult has seen and is handling this alert; the structural minimum this ticket adds so the
+// negative gate (an acknowledged alert never escalates) is real and testable — no earlier ticket
+// owns an acknowledge write path. Idempotent: acknowledging twice is not an error.
+export async function acknowledgeAlert(flagId: string): Promise<{ flag_id: string; status: string }> {
+  return api<{ flag_id: string; status: string }>(`/alerts/${flagId}/acknowledge`, { method: "POST" })
+}
+
+// FR-12-08 (GATE G-8) · POST /api/v1/alerts/{flagId}/escalate — a scheduled/background system
+// process escalates an alerted, unacknowledged flag to the next configured adult (FR-12-05's
+// ordered list); 409 if the flag has already been acknowledged. No manual "Escalate" control
+// exists on the approved screen (SC-039) — escalation state is rendered from the timeline
+// (an `escalated` event), never triggered from this UI.
+export async function escalateAlert(flagId: string): Promise<{ flag_id: string; escalated_to: string }> {
+  return api<{ flag_id: string; escalated_to: string }>(`/alerts/${flagId}/escalate`, { method: "POST" })
+}
+
+export function alertActionErrorMessage(err: unknown): string {
+  const msg = err instanceof Error ? err.message : ""
+  const status = Number(/(\d{3})/.exec(msg)?.[1])
+  if (status === 409) return "This alert has already been acknowledged."
+  if (status === 403) return "You don't have permission to act on this alert."
+  return "Something went wrong. Please try again."
+}
