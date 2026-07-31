@@ -25,6 +25,11 @@ export const ROLE_ROUTES: Record<string, string[]> = {
   // as /risk/score) — every staff role that can see students' wellbeing signals may review the
   // triage queue, matching the approved screen's teacher-facing chrome plus leadership oversight.
   triage: ["teacher", "support", "leadership"],
+  // FR-12-09 (SC-039): the BE (`GET /flags/{id}/events`) is staff-session + school-scoped only —
+  // no per-flag "involved staff" list exists anywhere in the data model, so this codebase's
+  // established convention (`risk.py`/`alerts.py`) treats same-school staff as involved, same
+  // posture as `triage` above. Drill-in from the triage queue, so the same role set.
+  flagTimeline: ["teacher", "support", "leadership"],
   // FR-18-01 (SC-054): the BE (`GET /notifications`) is any-staff-role, self-scoped (a recipient
   // sees only their own feed) — every staff role that can be a configured alert recipient or
   // notification may view their own notifications centre.

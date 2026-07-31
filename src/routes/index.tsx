@@ -34,6 +34,7 @@ import { ConcernWords } from "./leadership/ConcernWords"
 import { DataDeletionScreen } from "./leadership/DataDeletionScreen"
 import { DataExportScreen } from "./leadership/DataExportScreen"
 import { StaffManagement } from "./leadership/StaffManagement"
+import { AlertDetail } from "./leadership/AlertDetail"
 import { TriageQueue } from "./leadership/TriageQueue"
 import { SubscriptionApp } from "./subscription"
 import { RosterListApp } from "./roster"
@@ -166,6 +167,18 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.triage}>
               <TriageQueue />
+            </RequireRole>
+          }
+        />
+        {/* FR-12-09 — SC-039 flag record: the immutable event timeline (who was alerted, viewed,
+            acted, escalated-to, and when). Drill-in from the triage queue; same RequireRole gate
+            posture as `triage` above (the BE has no narrower per-flag authz — see `lib/roles.ts`).
+            Render-only: no edit/delete UI, the record is append-only. */}
+        <Route
+          path="triage/:flagId"
+          element={
+            <RequireRole allow={ROLE_ROUTES.flagTimeline}>
+              <AlertDetail />
             </RequireRole>
           }
         />
