@@ -55,10 +55,10 @@ describe("GuidedResponse screen (FR-13-04 · SC-040)", () => {
     renderAtFlag()
     await screen.findByText(GUIDANCE.suggested_wording)
 
-    // "use" — the send control exists but is a real, disabled stand-in (FR-13-05 not yet built),
-    // never a forced/required step.
+    // "use" — a real, enabled control (FR-13-05): navigation is asserted in the dedicated test
+    // below, not a forced/required step here.
     const useButton = screen.getByRole("button", { name: /use & send a private note/i })
-    expect(useButton).toBeDisabled()
+    expect(useButton).toBeEnabled()
 
     // "adapt" — a genuine, working local action: toggles the wording into an editable field.
     const user = userEvent.setup()
@@ -91,5 +91,21 @@ describe("GuidedResponse screen (FR-13-04 · SC-040)", () => {
     renderAtFlag()
     await screen.findByText(GUIDANCE.suggested_wording)
     expect(screen.queryByRole("link")).not.toBeInTheDocument()
+  })
+
+  it("FR-13-05: 'Use & send a private note' navigates to the compose screen, never a dead control", async () => {
+    getMock.mockResolvedValue(GUIDANCE)
+    render(
+      <MemoryRouter initialEntries={["/app/flags/f1/guidance"]}>
+        <Routes>
+          <Route path="/app/flags/:flagId/guidance" element={<GuidedResponseApp />} />
+          <Route path="/app/flags/:flagId/note" element={<h1>Private note page</h1>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    await screen.findByText(GUIDANCE.suggested_wording)
+    const user = userEvent.setup()
+    await user.click(screen.getByRole("button", { name: /use & send a private note/i }))
+    expect(await screen.findByText("Private note page")).toBeInTheDocument()
   })
 })

@@ -39,6 +39,11 @@ export const ROLE_ROUTES: Record<string, string[]> = {
   // surface, not a leadership one (mirrors `dashboard`'s role list, the same audience that can own
   // or share a class).
   guidedResponse: ["teacher", "support"],
+  // FR-13-05 (SC-041): the BE (`POST /students/{id}/notes`, `GET /flags/{id}/student`) restricts
+  // both to the INVOLVED teacher (same own/shared-class-scope check as `guidedResponse` above) —
+  // same audience, since this is the note action reached FROM guided response, not a separate
+  // surface.
+  privateNote: ["teacher", "support"],
 }
 
 // The landing route for each effective role (used by RoleHome).

@@ -17,6 +17,7 @@ import { CheckInApp } from "./checkin"
 import { InviteColleagueApp } from "./class-invitations"
 import { ClassDashboardApp } from "./dashboard"
 import { GuidedResponseApp } from "./guided-response"
+import { PrivateNoteApp } from "./private-note"
 import { StudentDetailApp } from "./student-detail"
 import { Notifications } from "./notifications/Notifications"
 import { AuditLog } from "./admin-console/audit-log/AuditLog"
@@ -193,6 +194,19 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.guidedResponse}>
               <GuidedResponseApp />
+            </RequireRole>
+          }
+        />
+        {/* FR-13-05 — SC-041 private supportive note: reached from guided-response's "Use & send
+            a private note" action (`flagId` carried in the URL, current wording carried via router
+            state). Same RequireRole gate as `guidedResponse` above (the note action reached FROM
+            it, not a separate audience); the BE additionally re-checks own/shared class scope on
+            both `GET /flags/{id}/student` and `POST /students/{id}/notes` (403 otherwise). */}
+        <Route
+          path="flags/:flagId/note"
+          element={
+            <RequireRole allow={ROLE_ROUTES.privateNote}>
+              <PrivateNoteApp />
             </RequireRole>
           }
         />

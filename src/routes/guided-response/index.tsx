@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { Button, Card, CardBody, CardHeader, EmptyState, Icon, PageHeader } from "@design/components"
 
@@ -21,18 +21,21 @@ import { getGuidance, type Guidance } from "./api"
 //  (c) "Useful links" render as plain rows, not `<a href="#">` anchors — the API returns a label
 //      only (no destination URL exists yet in this codebase), and a `href="#"` dead link is the
 //      exact anti-pattern CLAUDE.md step 7 calls out from an earlier session.
-//  (d) "Use & send a private note" stays a real, DISABLED control (not a dead link, not wired to a
-//      send) — FR-13-05 (the private-note send) is a separate, explicitly not-yet-built future
-//      ticket this one must not build; same "disabled until its feature ships" precedent as the
-//      notifications bell before FR-18-01 (`components/layout/AppShell.tsx`).
-//  (e) "Log this response" also stays disabled — its backing feature is the shared per-student
-//      intervention log, M-13 Phase 2 (FR-13-01/02/03), explicitly out of scope for this ticket.
+//  (d) "Use & send a private note" is now WIRED FOR REAL (FR-13-05, SC-041 — no longer disabled):
+//      navigates to `/app/flags/:flagId/note`, carrying the CURRENT suggested/adapted wording via
+//      router `state` so the compose screen starts from what the teacher was already looking at.
+//      `flagId` -> `student_id` is resolved there (`GET /flags/{id}/student`, FR-13-05's own
+//      addition) since this screen's own endpoint carries no student identity (see (b)).
+//  (e) "Log this response" stays disabled — its backing feature is the shared per-student
+//      intervention log, M-13 Phase 2 (FR-13-01/02/03), still out of scope (this ticket owns only
+//      the note action, not the log — ticket §Out-of-scope).
 //  (f) "Adapt wording" IS wired for real (not disabled, not a stub): it toggles the suggested
 //      wording into a local, editable textarea — a genuine use/adapt/ignore action needing no
 //      backend at all, so it is a real convenience rather than a dead control.
 
 export function GuidedResponseApp() {
   const { flagId } = useParams<{ flagId: string }>()
+  const navigate = useNavigate()
   const [guidance, setGuidance] = useState<Guidance | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [adapting, setAdapting] = useState(false)
@@ -97,9 +100,9 @@ export function GuidedResponseApp() {
                 <Button
                   variant="ink"
                   icon={<Icon.Pencil />}
-                  disabled
-                  title="Coming soon — sending a private note is FR-13-05"
-                  className="disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => {
+                    if (flagId) navigate(`/app/flags/${flagId}/note`, { state: { wording } })
+                  }}
                 >
                   Use &amp; send a private note
                 </Button>
