@@ -17,22 +17,28 @@
  *      screen now serves — are real.
  *  (c) FR-12-08 delta: the approved screen's "Acknowledge" button is now wired to the real
  *      `POST /alerts/{flagId}/acknowledge` (previously omitted — FR-12-09 logged it as a dead
- *      control with no backing endpoint yet; this ticket is that endpoint). "Guided response",
- *      "Private note" and "Intervention log" still call OTHER tickets' write paths (FR-13-04/05,
- *      M-13 Phase 2) that do not exist yet — still omitted rather than shipped as dead controls
- *      (root CLAUDE.md: "every control must still route/do something").
+ *      control with no backing endpoint yet; this ticket is that endpoint). "Private note" and
+ *      "Intervention log" still call OTHER tickets' write paths (FR-13-05, M-13 Phase 2) that do
+ *      not exist yet — still omitted rather than shipped as dead controls (root CLAUDE.md: "every
+ *      control must still route/do something").
  *  (d) FR-12-08 delta: an "Escalated" badge (approved screen has no dedicated escalated-state
  *      element beyond its timeline entries) is added next to the title, in the SAME `Tag`
  *      primitive/position the approved screen uses for its band Tag. It is DERIVED from the
  *      already-fetched timeline (an `escalated` event present) rather than a second endpoint —
  *      escalation is a system/background process (ticket DoD), not a control this screen
  *      triggers, so there is no "Escalate" button here.
+ *  (e) Nav-wiring fix (2026-07-31): "Guided response" is now wired for real — FR-13-04 built the
+ *      screen it routes to (`/app/flags/:flagId/guidance`), so the earlier omission in (c) is
+ *      stale; a dead control would now be the wrong call. Real navigation, not a write action, so
+ *      it renders as a `ghost` button distinct from the primary `Acknowledge` action.
  */
 import { useEffect, useState } from "react"
-import { useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 
 import { Button, Card, CardHeader, EmptyState, Icon, PageHeader, Tag, Timeline, type TimelineEntry } from "@design/components"
 
+import { useAuth } from "../../app/AuthContext"
+import { effectiveRole, ROLE_ROUTES } from "../../lib/roles"
 import {
   acknowledgeAlert, alertActionErrorMessage, getFlagEvents, type FlagTimelineEvent,
 } from "./risk-api"
@@ -68,6 +74,12 @@ function toEntry(e: FlagTimelineEvent): TimelineEntry {
 
 export function AlertDetail() {
   const { flagId } = useParams<{ flagId: string }>()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  // "Guided response" is teacher/support-only (ROLE_ROUTES.guidedResponse) — leadership can also
+  // view this timeline (ROLE_ROUTES.flagTimeline) but is not the involved teacher the BE restricts
+  // that read to, so the button is omitted for leadership rather than routing to a 403.
+  const canOpenGuidance = ROLE_ROUTES.guidedResponse.includes(effectiveRole(user) ?? "")
   const [events, setEvents] = useState<FlagTimelineEvent[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [acknowledging, setAcknowledging] = useState(false)
@@ -122,6 +134,15 @@ export function AlertDetail() {
           >
             {acknowledged ? "Acknowledged" : "Acknowledge"}
           </Button>
+          {canOpenGuidance && flagId && (
+            <Button
+              variant="ghost"
+              icon={<Icon.ArrowRight />}
+              onClick={() => navigate(`/app/flags/${flagId}/guidance`)}
+            >
+              Guided response
+            </Button>
+          )}
         </div>
       )}
       {actionError && <p className="mb-3 text-xs text-status-danger">{actionError}</p>}

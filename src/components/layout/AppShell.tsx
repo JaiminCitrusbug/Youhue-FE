@@ -4,6 +4,12 @@ import { useAuth } from "../../app/AuthContext"
 import { effectiveRole } from "../../lib/roles"
 
 // Role-driven nav (fed by the backend role; INFRA-03 owns who may). Presentational only.
+//
+// Nav-wiring fix (2026-07-31): a code audit found several fully built, fully API-wired screens
+// with no click-path anywhere in the app (the kit's own `whole_product_e2e` "0 orphans" check was
+// owner-signed N/A for the whole build and never re-armed to actually catch this). Every route
+// below this comment marker was added then; each one's target screen and API were already built
+// and gate-tested by an earlier ticket — this is nav wiring only, no new screens or endpoints.
 const NAV_BY_ROLE: Record<string, { label: string; to: string }[]> = {
   // FR-02-03: only a class owner (teacher) may invite a colleague — `support` staff can never
   // own a class (application/authz/services.py), so this link is omitted from their nav.
@@ -11,10 +17,18 @@ const NAV_BY_ROLE: Record<string, { label: string; to: string }[]> = {
     { label: "Class dashboard", to: "/app/dashboard" },
     { label: "Invite colleague", to: "/app/roster/invite" },
     { label: "Activities", to: "/app/activities" },
+    // --- nav-wiring fix (2026-07-31) ---
+    { label: "Roster", to: "/app/roster" },
+    { label: "Import roster", to: "/app/roster/import" },
+    { label: "Triage", to: "/app/triage" },
   ],
   support: [
     { label: "Shared class", to: "/app/dashboard" },
     { label: "Activities", to: "/app/activities" },
+    // --- nav-wiring fix (2026-07-31) --- same ROLE_ROUTES.dashboard gate as teacher's Roster/Import
+    { label: "Roster", to: "/app/roster" },
+    { label: "Import roster", to: "/app/roster/import" },
+    { label: "Triage", to: "/app/triage" },
   ],
   leadership: [
     { label: "Leadership overview", to: "/app/leadership" },
@@ -22,11 +36,21 @@ const NAV_BY_ROLE: Record<string, { label: string; to: string }[]> = {
     { label: "Concern words", to: "/app/leadership/settings/concern-words" },
     { label: "Alert routing", to: "/app/leadership/settings/alert-routing" },
     { label: "Access window", to: "/app/leadership/settings/access-window" },
+    // --- nav-wiring fix (2026-07-31) ---
+    { label: "Triage", to: "/app/triage" },
+    { label: "Subscription", to: "/app/leadership/subscription" },
+    { label: "Data export", to: "/app/leadership/export" },
+    { label: "Data deletion", to: "/app/leadership/export-and-delete" },
+    { label: "Parental consent", to: "/app/leadership/consent" },
   ],
   district: [{ label: "District admin", to: "/app/district" }],
   admin: [
     { label: "Admin console", to: "/app/admin" },
     { label: "Seed activities", to: "/app/admin/seed-activities" },
+    // --- nav-wiring fix (2026-07-31) ---
+    { label: "Platform stats", to: "/app/admin/stats" },
+    { label: "School accounts", to: "/app/admin/schools" },
+    { label: "Audit log", to: "/app/admin/audit-log" },
   ],
 }
 

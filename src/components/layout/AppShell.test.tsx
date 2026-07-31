@@ -58,4 +58,18 @@ describe("AppShell (staff frame)", () => {
     expect(bell).toHaveAttribute("href", "/app/notifications")
     expect(bell).not.toHaveAttribute("aria-disabled")
   })
+
+  // Nav-wiring fix (2026-07-31): Roster/Import roster/Triage were fully built and gate-tested but
+  // had no click-path anywhere in the app — a code audit found the "0 orphans" reachability check
+  // had been owner-signed N/A for the whole build and never re-armed.
+  it("teacher nav includes the previously-orphaned Roster/Import roster/Triage links (nav-wiring fix)", () => {
+    render(
+      <MemoryRouter>
+        <AppShell />
+      </MemoryRouter>,
+    )
+    expect(screen.getByRole("link", { name: /^roster$/i })).toHaveAttribute("href", "/app/roster")
+    expect(screen.getByRole("link", { name: /import roster/i })).toHaveAttribute("href", "/app/roster/import")
+    expect(screen.getByRole("link", { name: /^triage$/i })).toHaveAttribute("href", "/app/triage")
+  })
 })

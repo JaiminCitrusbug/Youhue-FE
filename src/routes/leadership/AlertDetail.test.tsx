@@ -6,6 +6,16 @@ import * as riskApi from "./risk-api"
 import type { FlagTimelineEvent } from "./risk-api"
 import { AlertDetail } from "./AlertDetail"
 
+// Default mock: leadership. Leadership can view this timeline (ROLE_ROUTES.flagTimeline) but is
+// not the involved teacher the BE restricts guided-response reads to (ROLE_ROUTES.guidedResponse),
+// so "Guided response" is correctly absent — same posture as every other existing test below.
+const mockUser = vi.hoisted(() => ({
+  current: { subject_id: "u1", kind: "staff", role: "leadership", school_id: "sch1" },
+}))
+vi.mock("../../app/AuthContext", () => ({
+  useAuth: () => ({ user: mockUser.current, loading: false, refresh: vi.fn(), signOut: vi.fn() }),
+}))
+
 vi.mock("./risk-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./risk-api")>()
   return { ...actual, getFlagEvents: vi.fn(), acknowledgeAlert: vi.fn() }
@@ -38,6 +48,7 @@ describe("AlertDetail screen (FR-12-09 · SC-039 timeline + FR-12-08 · GATE G-8
   beforeEach(() => {
     getMock.mockReset()
     ackMock.mockReset()
+    mockUser.current = { subject_id: "u1", kind: "staff", role: "leadership", school_id: "sch1" }
   })
 
   it("renders the immutable timeline from the real read", async () => {
@@ -108,5 +119,32 @@ describe("AlertDetail screen (FR-12-09 · SC-039 timeline + FR-12-08 · GATE G-8
     await screen.findByText("Alerted")
     const heading = screen.getByRole("heading", { name: /flag record/i })
     expect(within(heading).queryByText("Escalated")).not.toBeInTheDocument()
+  })
+
+  describe("Guided response nav (2026-07-31 wiring fix)", () => {
+    it("teacher sees a real 'Guided response' control alongside Acknowledge, never a dead one", async () => {
+      const { default: userEvent } = await import("@testing-library/user-event")
+      mockUser.current = { subject_id: "u9", kind: "staff", role: "teacher", school_id: "sch1" }
+      getMock.mockResolvedValue({ events: EVENTS })
+      render(
+        <MemoryRouter initialEntries={["/app/triage/f9"]}>
+          <Routes>
+            <Route path="/app/triage/:flagId" element={<AlertDetail />} />
+            <Route path="/app/flags/:flagId/guidance" element={<h1>Guided response page</h1>} />
+          </Routes>
+        </MemoryRouter>,
+      )
+      await screen.findByText("Alerted")
+      const guidedResponse = screen.getByRole("button", { name: /guided response/i })
+      await userEvent.click(guidedResponse)
+      expect(await screen.findByText("Guided response page")).toBeInTheDocument()
+    })
+
+    it("leadership (not the involved teacher) does not see 'Guided response' — omitted, not a dead control", async () => {
+      getMock.mockResolvedValue({ events: EVENTS })
+      renderAt("f10")
+      await screen.findByText("Alerted")
+      expect(screen.queryByRole("button", { name: /guided response/i })).not.toBeInTheDocument()
+    })
   })
 })
