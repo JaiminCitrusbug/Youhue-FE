@@ -34,6 +34,11 @@ export const ROLE_ROUTES: Record<string, string[]> = {
   // sees only their own feed) — every staff role that can be a configured alert recipient or
   // notification may view their own notifications centre.
   notifications: ["teacher", "support", "leadership", "district"],
+  // FR-13-04 (SC-040): the BE (`GET /flags/{id}/guidance`) restricts the read to the INVOLVED
+  // teacher (reuses FR-10-02's own/shared-class-scope check, 403 otherwise) — a teacher-facing
+  // surface, not a leadership one (mirrors `dashboard`'s role list, the same audience that can own
+  // or share a class).
+  guidedResponse: ["teacher", "support"],
 }
 
 // The landing route for each effective role (used by RoleHome).

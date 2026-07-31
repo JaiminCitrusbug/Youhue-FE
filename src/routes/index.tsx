@@ -16,6 +16,7 @@ import { ActivityRunAssignApp } from "./activities"
 import { CheckInApp } from "./checkin"
 import { InviteColleagueApp } from "./class-invitations"
 import { ClassDashboardApp } from "./dashboard"
+import { GuidedResponseApp } from "./guided-response"
 import { StudentDetailApp } from "./student-detail"
 import { Notifications } from "./notifications/Notifications"
 import { AuditLog } from "./admin-console/audit-log/AuditLog"
@@ -179,6 +180,19 @@ export function AppRoutes() {
           element={
             <RequireRole allow={ROLE_ROUTES.flagTimeline}>
               <AlertDetail />
+            </RequireRole>
+          }
+        />
+        {/* FR-13-04 — SC-040 guided response: advisory suggested wording, next steps and useful
+            links for a teacher opening the response to a flagged check-in (`GET
+            /flags/{flagId}/guidance`). Teacher-facing (not leadership) — the BE restricts the
+            read to the INVOLVED teacher (own/shared class scope, 403 otherwise), same audience as
+            `dashboard`. Use/adapt/ignore only; nothing here forces or auto-applies an action. */}
+        <Route
+          path="flags/:flagId/guidance"
+          element={
+            <RequireRole allow={ROLE_ROUTES.guidedResponse}>
+              <GuidedResponseApp />
             </RequireRole>
           }
         />
