@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import * as api from "./api"
-import { EntitlementsApiError, type EntitlementsResponse } from "./api"
+import { EntitlementsApiError, PricingApiError, type EntitlementsResponse, type PricingResponse } from "./api"
 import { SubscriptionApp } from "./index"
 
 vi.mock("../../app/AuthContext", () => ({
@@ -16,10 +16,11 @@ vi.mock("../../app/AuthContext", () => ({
 
 vi.mock("./api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./api")>()
-  return { ...actual, getEntitlements: vi.fn() }
+  return { ...actual, getEntitlements: vi.fn(), getPricing: vi.fn() }
 })
 
 const getMock = vi.mocked(api.getEntitlements)
+const pricingMock = vi.mocked(api.getPricing)
 
 const FREE: EntitlementsResponse = {
   tier: "free",
@@ -31,9 +32,19 @@ const PREMIUM: EntitlementsResponse = {
   features: ["daily_checkins", "colleague_invites", "ai_analysis", "roster_sync"],
 }
 
+const PRICING: PricingResponse = {
+  model: "per_student_per_year",
+  by_quote: true,
+  tax: "none at launch",
+}
+
 describe("SubscriptionApp (FR-17-01 · SC-085)", () => {
   beforeEach(() => {
     getMock.mockReset()
+    pricingMock.mockReset()
+    // default: every entitlements-focused test also needs pricing to resolve so it isn't
+    // exercising the (separately-tested) pricing error path incidentally.
+    pricingMock.mockResolvedValue(PRICING)
   })
 
   it("renders the Free tier and its real feature list, human-readable labels", async () => {
@@ -82,5 +93,49 @@ describe("SubscriptionApp (FR-17-01 · SC-085)", () => {
     getMock.mockRejectedValue(new EntitlementsApiError(500, "Couldn't load your plan. Please try again."))
     render(<SubscriptionApp />)
     expect(await screen.findByText(/couldn't load your plan/i)).toBeInTheDocument()
+  })
+})
+
+// ---- FR-17-06: informational pricing model (GET /api/v1/pricing) --------------------------------
+
+describe("SubscriptionApp pricing section (FR-17-06 · SC-085)", () => {
+  beforeEach(() => {
+    getMock.mockReset()
+    pricingMock.mockReset()
+    getMock.mockResolvedValue(FREE)
+  })
+
+  it("presents the pricing model — per student/year, cheaper at higher volumes, by quote, no tax at launch", async () => {
+    pricingMock.mockResolvedValue(PRICING)
+    render(<SubscriptionApp />)
+    expect(await screen.findByText("Per student, per year")).toBeInTheDocument()
+    expect(screen.getByText("Cheaper at higher volumes")).toBeInTheDocument()
+    expect(screen.getByText("By quote")).toBeInTheDocument()
+    expect(screen.getByText(/no self-service card entry/i)).toBeInTheDocument()
+    expect(screen.getByText("none at launch")).toBeInTheDocument()
+  })
+
+  // NEG (ticket Do-NOT): never a hard-coded ratified per-student price number.
+  it("never renders a ratified dollar price anywhere on the screen", async () => {
+    pricingMock.mockResolvedValue(PRICING)
+    const { container } = render(<SubscriptionApp />)
+    await screen.findByText("Per student, per year")
+    expect(container.textContent).not.toMatch(/\$\d/)
+  })
+
+  // NEG (ticket Scenario 2 / GATE — no PCI surface): no in-platform card entry anywhere.
+  it("renders no card-entry form or input anywhere on the screen", async () => {
+    pricingMock.mockResolvedValue(PRICING)
+    const { container } = render(<SubscriptionApp />)
+    await screen.findByText("Per student, per year")
+    expect(container.querySelectorAll("input, form")).toHaveLength(0)
+  })
+
+  it("surfaces a pricing load failure without blocking the entitlements section (never silently dropped)", async () => {
+    pricingMock.mockRejectedValue(new PricingApiError(500, "Couldn't load pricing. Please try again."))
+    render(<SubscriptionApp />)
+    expect(await screen.findByText(/couldn't load pricing/i)).toBeInTheDocument()
+    // the (independently-loaded) entitlements section still renders normally
+    expect(await screen.findByText("Free")).toBeInTheDocument()
   })
 })

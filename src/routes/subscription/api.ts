@@ -39,6 +39,42 @@ export async function getEntitlements(schoolId: string): Promise<EntitlementsRes
   return (await res.json()) as EntitlementsResponse
 }
 
+// FR-17-06 · GET /api/v1/pricing — the informational, quote-based pricing model. No school_id
+// (platform-wide, not school-specific data). Takes no card data, stores none (NEG — no PCI
+// surface): this is the only network call this screen's pricing section ever makes.
+
+export interface PricingResponse {
+  model: string
+  by_quote: boolean
+  tax: string
+}
+
+export class PricingApiError extends Error {
+  status: number
+  constructor(status: number, message: string) {
+    super(message)
+    this.status = status
+  }
+}
+
+export async function getPricing(): Promise<PricingResponse> {
+  const token = getToken()
+  const res = await fetch(`${BASE}/pricing`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) {
+    let detail = "Couldn't load pricing. Please try again."
+    try {
+      const body = (await res.json()) as { detail?: string }
+      if (body.detail) detail = body.detail
+    } catch {
+      // no/invalid JSON body — keep the generic message, still surfaced via the thrown error
+    }
+    throw new PricingApiError(res.status, detail)
+  }
+  return (await res.json()) as PricingResponse
+}
+
 // FR-17-01 DoD text (verbatim feature keys the BE returns) — the human-readable label mapping
 // this screen renders. Kept alongside the API layer since it's a 1:1 presentation concern, not
 // business logic (the entitlement DECISION is entirely server-side).
